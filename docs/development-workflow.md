@@ -21,53 +21,66 @@ The team uses:
 
 The main objective is to deliver a functional MVP within four sprints.
 
-## 2. Team Responsibilities
+## 2. Team Structure and Responsibilities
 
-### Coordination, DevOps and Integration — EuRuni
+BookFlow is developed by a four-member software engineering team.
 
-Responsibilities:
-- Coordinate development activities.
-- Maintain project documentation.
-- Configure GitHub Projects and Issues.
-- Configure Docker Compose.
-- Implement GitHub Actions CI.
-- Support backend development when necessary.
-- Coordinate frontend/backend integration.
-- Review integration problems and prepare the final demonstration.
+Responsibilities are assigned according to each member's primary technical area. All members participate in planning, code reviews, testing, and integration activities.
 
-### Frontend UI — Camilo
+### Ian — Project Coordination, DevOps & Integration
 
-Responsibilities:
-- Develop reusable interface components.
-- Implement responsive page layouts.
-- Apply Tailwind CSS styling.
-- Implement customer-facing pages.
-- Coordinate frontend components with Nikita.
-- Participate in code reviews.
+Primary responsibilities:
+- Coordinate project planning and development activities.
+- Maintain technical documentation and GitHub Projects.
+- Configure Docker Compose and development infrastructure.
+- Implement and maintain GitHub Actions CI workflows.
+- Coordinate integration between frontend and backend.
+- Support backend development and troubleshooting.
+- Monitor project progress and prepare the final demonstration.
 
-### Frontend Integration — Nikita
+### Camilo — Frontend Development (UI)
 
-Responsibilities:
-- Configure the React application.
-- Implement routing and shared frontend structure.
-- Integrate frontend pages with REST endpoints.
-- Manage API requests and authentication state.
-- Implement frontend validation and error handling.
-- Coordinate page implementation with Camilo.
+Primary responsibilities:
+- Design and implement responsive user interfaces.
+- Develop reusable React components.
+- Implement page layouts using Tailwind CSS.
+- Develop customer-facing pages and shared UI elements.
+- Collaborate with Nikita on frontend integration.
+- Test frontend functionality and usability.
 
-### Backend Development — Backend Developer
+### Nikita — Frontend Development (Integration)
 
-Responsibilities:
-- Configure Bun and ElysiaJS.
-- Implement PostgreSQL and Drizzle ORM.
-- Implement authentication and authorization.
-- Develop business, service and booking endpoints.
-- Implement capacity and scheduling logic.
-- Implement administrative endpoints.
+Primary responsibilities:
+- Configure and maintain the React application structure.
+- Implement routing using React Router.
+- Integrate frontend components with REST API endpoints.
+- Implement authentication state and protected routes.
+- Handle API requests, loading states, and errors.
+- Collaborate with Camilo on frontend development and testing.
+
+### Mohamed — Backend Development
+
+Primary responsibilities:
+- Configure the Bun and ElysiaJS backend.
+- Design and implement PostgreSQL schemas using Drizzle ORM.
+- Develop authentication and role-based authorization.
+- Implement business, service, and booking endpoints.
+- Implement availability, capacity, and booking rules.
+- Develop administrative functionality and statistics.
 - Create database migrations and backend tests.
-- Review the API contract with the team.
+- Coordinate API contracts and integration with frontend developers.
 
-Responsibilities may be adjusted according to workload and availability.
+### Shared Responsibilities
+
+All team members are expected to:
+- Participate in technical discussions and planning.
+- Maintain their assigned GitHub Issues.
+- Submit changes through Pull Requests.
+- Review teammates' contributions when appropriate.
+- Report blockers and integration problems.
+- Contribute to testing and final project delivery.
+
+Task ownership may be adjusted according to project priorities and team availability.
 
 ## 3. Git Branching Strategy
 
