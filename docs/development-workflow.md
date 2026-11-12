@@ -76,24 +76,79 @@ Primary responsibilities:
 
 ### 2.4 Frontend Task Distribution
 
-Camilo and Nikita have equivalent technical responsibilities.
+Camilo and Nikita have equivalent technical responsibilities as frontend developers.
 
-Frontend work is divided by functional pages or features rather than separating interface development from API integration.
+Frontend work is divided by complete features and application pages. Each developer is responsible for implementing the interface, client-side logic, API integration, and testing of their assigned features.
 
-Each developer is responsible for the complete implementation of their assigned features, including:
+The frontend codebase is organized by application area and user role, not by developer.
 
-1. Page structure and interface.
-2. Reusable components when necessary.
-3. Client-side behavior and validation.
-4. Communication with backend endpoints.
-5. Error and loading states.
-6. Functional testing.
+#### Camilo — Core User Flows
 
-The specific pages assigned to each developer will be defined through GitHub Issues during sprint planning.
+Camilo is responsible for frontend features that require frequent backend interaction, iterative testing, and coordination.
 
-Shared routing, authentication utilities, API helpers and reusable components must follow common conventions agreed upon by both frontend developers.
+Assigned features:
 
-Neither frontend developer is exclusively responsible for UI or API integration.
+**Authentication**
+- Login page.
+- Registration page.
+- Authentication state and session handling.
+- Protected route integration.
+
+**Customer**
+- Appointment booking interface.
+- Service time-slot selection.
+- Customer appointment history.
+- Booking cancellation and pending-request withdrawal.
+
+**Business**
+- Business reservation management.
+- Booking approval and rejection interfaces.
+- Business booking cancellation.
+
+#### Nikita — Business and Administration Features
+
+Nikita is responsible for complete frontend features with clearly defined interfaces and API contracts.
+
+Assigned features:
+
+**Public**
+- Home page.
+- Business catalog and search.
+- Business details and service listings.
+
+**Business**
+- Business dashboard.
+- Business profile and registration interface.
+- Service creation and management.
+- Schedule and availability management.
+- External capacity-block management.
+- Business statistics interface.
+
+**Administration**
+- Administrative dashboard.
+- Business approval and rejection interface.
+- User and business oversight.
+- Reservation oversight and administrative cancellation.
+- Administrative statistics and audit views.
+
+#### Shared Frontend Responsibilities
+
+Both developers must:
+
+- Use React, TypeScript, Vite, and Tailwind CSS.
+- Implement and integrate their own assigned pages.
+- Follow the shared frontend architecture.
+- Reuse common components and API utilities.
+- Coordinate shared routing and authentication requirements.
+- Handle loading, validation, and error states.
+- Test assigned features before submitting Pull Requests.
+
+Camilo maintains the initial shared authentication integration, while Nikita uses the agreed authentication utilities in his assigned pages.
+
+Shared changes affecting both developers must be coordinated before implementation.
+
+Feature assignments may be adjusted during sprint planning if necessary.
+```
 
 ### 2.5 Mohamed — Backend Development
 
