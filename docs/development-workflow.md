@@ -148,7 +148,6 @@ Camilo maintains the initial shared authentication integration, while Nikita use
 Shared changes affecting both developers must be coordinated before implementation.
 
 Feature assignments may be adjusted during sprint planning if necessary.
-```
 
 ### 2.5 Mohamed — Backend Development
 
