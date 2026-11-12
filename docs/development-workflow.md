@@ -1,4 +1,3 @@
-
 # BookFlow — Development Workflow
 
 **Project:** BookFlow  
@@ -9,9 +8,10 @@
 
 ## 1. Project Organization
 
-BookFlow is developed by a team of four students.
+BookFlow is developed by a four-member software engineering team.
 
 The team uses:
+
 - GitHub for source code and collaboration.
 - GitHub Issues for individual tasks.
 - GitHub Projects for sprint planning.
@@ -21,90 +21,168 @@ The team uses:
 
 The main objective is to deliver a functional MVP within four sprints.
 
+Development is organized into frontend, backend, infrastructure, and integration activities. Each team member is responsible for completing and testing their assigned tasks.
+
 ## 2. Team Structure and Responsibilities
 
-BookFlow is developed by a four-member software engineering team.
+| Member | Primary Role | Area |
+|---|---|---|
+| Ian | Project Coordinator & DevOps Developer | Coordination, infrastructure, documentation, integration and backend support |
+| Camilo | Frontend Developer | Assigned frontend pages, components and API integration |
+| Nikita | Frontend Developer | Assigned frontend pages, components and API integration |
+| Mohamed | Backend Developer | Backend API, database and business logic |
 
-Responsibilities are assigned according to each member's primary technical area. All members participate in planning, code reviews, testing, and integration activities.
-
-### Ian — Project Coordination, DevOps & Integration
+### 2.1 Ian — Project Coordination, DevOps & Integration
 
 Primary responsibilities:
+
 - Coordinate project planning and development activities.
 - Maintain technical documentation and GitHub Projects.
-- Configure Docker Compose and development infrastructure.
-- Implement and maintain GitHub Actions CI workflows.
+- Organize GitHub Issues, sprints and task assignments.
+- Configure and maintain Docker Compose.
+- Implement GitHub Actions CI workflows.
 - Coordinate integration between frontend and backend.
-- Support backend development and troubleshooting.
-- Monitor project progress and prepare the final demonstration.
+- Support Mohamed with backend implementation and troubleshooting when necessary.
+- Monitor project progress and resolve organizational blockers.
+- Coordinate testing and prepare the final demonstration.
 
-### Camilo — Frontend Development (UI)
+Ian is responsible for technical coordination and infrastructure but does not replace the individual responsibilities of other developers.
 
-Primary responsibilities:
-- Design and implement responsive user interfaces.
-- Develop reusable React components.
-- Implement page layouts using Tailwind CSS.
-- Develop customer-facing pages and shared UI elements.
-- Collaborate with Nikita on frontend integration.
-- Test frontend functionality and usability.
-
-### Nikita — Frontend Development (Integration)
+### 2.2 Camilo — Frontend Development
 
 Primary responsibilities:
-- Configure and maintain the React application structure.
-- Implement routing using React Router.
-- Integrate frontend components with REST API endpoints.
-- Implement authentication state and protected routes.
-- Handle API requests, loading states, and errors.
-- Collaborate with Camilo on frontend development and testing.
 
-### Mohamed — Backend Development
+- Develop assigned frontend pages and features using React and TypeScript.
+- Implement the required UI components and responsive layouts.
+- Use Tailwind CSS for styling.
+- Implement client-side logic for assigned features.
+- Connect assigned pages directly to the corresponding backend API endpoints.
+- Implement loading, validation and error states.
+- Test the functionality of assigned pages.
+- Coordinate shared components and frontend conventions with Nikita.
+
+### 2.3 Nikita — Frontend Development
 
 Primary responsibilities:
-- Configure the Bun and ElysiaJS backend.
-- Design and implement PostgreSQL schemas using Drizzle ORM.
+
+- Develop assigned frontend pages and features using React and TypeScript.
+- Implement the required UI components and responsive layouts.
+- Use Tailwind CSS for styling.
+- Implement client-side logic for assigned features.
+- Connect assigned pages directly to the corresponding backend API endpoints.
+- Implement loading, validation and error states.
+- Test the functionality of assigned pages.
+- Coordinate shared components and frontend conventions with Camilo.
+
+### 2.4 Frontend Task Distribution
+
+Camilo and Nikita have equivalent technical responsibilities.
+
+Frontend work is divided by functional pages or features rather than separating interface development from API integration.
+
+Each developer is responsible for the complete implementation of their assigned features, including:
+
+1. Page structure and interface.
+2. Reusable components when necessary.
+3. Client-side behavior and validation.
+4. Communication with backend endpoints.
+5. Error and loading states.
+6. Functional testing.
+
+The specific pages assigned to each developer will be defined through GitHub Issues during sprint planning.
+
+Shared routing, authentication utilities, API helpers and reusable components must follow common conventions agreed upon by both frontend developers.
+
+Neither frontend developer is exclusively responsible for UI or API integration.
+
+### 2.5 Mohamed — Backend Development
+
+Primary responsibilities:
+
+- Configure and maintain the Bun and ElysiaJS backend.
+- Design PostgreSQL schemas using Drizzle ORM.
+- Implement database migrations.
 - Develop authentication and role-based authorization.
-- Implement business, service, and booking endpoints.
-- Implement availability, capacity, and booking rules.
+- Implement business and service management endpoints.
+- Implement availability and booking logic.
+- Enforce cancellation deadlines and booking state transitions.
+- Prevent overbooking through transactional capacity checks.
+- Implement external capacity blocks.
 - Develop administrative functionality and statistics.
-- Create database migrations and backend tests.
-- Coordinate API contracts and integration with frontend developers.
+- Write backend tests.
+- Coordinate API contracts with the frontend developers and Ian.
 
-### Shared Responsibilities
+### 2.6 Shared Responsibilities
 
 All team members are expected to:
+
 - Participate in technical discussions and planning.
 - Maintain their assigned GitHub Issues.
 - Submit changes through Pull Requests.
 - Review teammates' contributions when appropriate.
 - Report blockers and integration problems.
+- Follow the agreed technical architecture.
 - Contribute to testing and final project delivery.
 
 Task ownership may be adjusted according to project priorities and team availability.
 
-## 3. Git Branching Strategy
+## 3. Technology and Development Conventions
+
+### Frontend
+
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+- React Router
+- Fetch API
+
+### Backend
+
+- Bun
+- ElysiaJS
+- Zod
+- Drizzle ORM
+- PostgreSQL
+
+### Infrastructure
+
+- Docker
+- Docker Compose
+- GitHub Actions
+
+All developers must follow the documented architecture and API contract.
+
+Shared frontend components should be reused instead of duplicated.
+
+Backend business rules must not be implemented exclusively in the frontend.
+
+## 4. Git Branching Strategy
 
 The `main` branch contains reviewed and approved changes.
 
-Developers must create a separate branch for each task.
+Developers must create a separate branch for each task or closely related group of changes.
 
 Recommended branch names:
 
-- `feat/authentication`
+- `feat/customer-auth-pages`
+- `feat/business-dashboard`
 - `feat/booking-api`
-- `feat/customer-pages`
+- `feat/service-management`
 - `fix/availability-calculation`
 - `docs/api-contract`
 - `chore/docker-compose`
 
 Direct changes to `main` are not allowed.
 
-## 4. Pull Request Workflow
+Developers should synchronize their feature branches with the latest approved changes before integration.
+
+## 5. Pull Request Workflow
 
 1. Create or select a GitHub Issue.
 2. Assign the Issue to a developer.
 3. Create a feature branch.
-4. Implement the requested changes.
+4. Implement the requested functionality.
 5. Run relevant local checks.
 6. Open a Pull Request targeting `main`.
 7. Link the corresponding Issue.
@@ -117,11 +195,13 @@ At least one approving review is required.
 
 Developers must not approve their own Pull Requests.
 
-Small Pull Requests are preferred.
+Small, focused Pull Requests are preferred.
 
-Approximately 700 changed lines per code delivery is a guideline. Documentation, generated files, and justified exceptions may exceed this amount.
+Approximately 700 changed lines per code delivery is a guideline. Documentation, generated files and justified exceptions may exceed this amount.
 
-## 5. GitHub Projects Workflow
+Frontend Pull Requests should include the relevant page functionality and API integration whenever the corresponding backend endpoint is available.
+
+## 6. GitHub Projects Workflow
 
 The project board uses the following statuses:
 
@@ -134,6 +214,7 @@ The project board uses the following statuses:
 | Done | Completed and merged |
 
 Every development Issue should include:
+
 - A descriptive title.
 - A clear task description.
 - Acceptance criteria.
@@ -143,46 +224,70 @@ Every development Issue should include:
 
 Issues should be moved through the board as work progresses.
 
-## 6. Sprint Planning
+Frontend Issues should normally assign complete pages or features to Camilo or Nikita, including their integration responsibilities.
+
+Backend Issues should identify the endpoints or business rules that must be implemented.
+
+Infrastructure and coordination Issues should be assigned to Ian.
+
+## 7. Sprint Planning
+
+The project consists of four two-week sprints.
 
 ### Sprint 1 — Project Foundation
 
 **Weeks 1–2**
 
 Objectives:
+
 - Confirm MVP requirements.
 - Complete architecture and API documentation.
 - Configure React, TypeScript, Vite and Tailwind CSS.
 - Configure Bun, ElysiaJS and PostgreSQL.
-- Define Drizzle ORM schemas.
+- Define initial Drizzle ORM schemas.
 - Configure Docker Compose.
 - Configure initial GitHub Actions workflows.
-- Establish the basic frontend and backend structure.
+- Establish the frontend and backend project structures.
+- Agree on frontend conventions and reusable components.
 
-Deliverable:
-- Project starts locally with the initial frontend, backend and database services.
+Responsibilities:
+
+- **Ian:** Documentation, Docker Compose, CI and repository coordination.
+- **Camilo:** Frontend foundation and assigned initial components or pages.
+- **Nikita:** Frontend foundation and assigned initial components or pages.
+- **Mohamed:** Backend foundation, database configuration and initial schemas.
+
+**Deliverable:** The frontend, backend and database services start locally, with a working project structure.
 
 ### Sprint 2 — Authentication and Business Management
 
 **Weeks 3–4**
 
 Objectives:
+
 - Implement registration and login.
 - Implement role-based authorization.
-- Implement business registration and approval.
+- Implement business registration and administrative approval.
 - Implement business and service management.
 - Implement recurring schedules and availability exceptions.
 - Develop the public business catalog.
-- Integrate the initial frontend pages with the API.
+- Connect completed frontend pages to the corresponding backend endpoints.
 
-Deliverable:
-- Users can register and log in; approved businesses can configure and publish services.
+Responsibilities:
+
+- **Ian:** Integration support, infrastructure maintenance and progress coordination.
+- **Camilo:** Assigned authentication, catalog or business-management frontend features, including API integration.
+- **Nikita:** Assigned authentication, catalog or business-management frontend features, including API integration.
+- **Mohamed:** Authentication, authorization, business and service endpoints.
+
+**Deliverable:** Users can register and log in, and approved businesses can configure and publish services.
 
 ### Sprint 3 — Booking System
 
 **Weeks 5–6**
 
 Objectives:
+
 - Implement appointment availability calculations.
 - Implement booking requests.
 - Implement manual booking approval and rejection.
@@ -190,16 +295,23 @@ Objectives:
 - Implement cancellation rules.
 - Implement external capacity blocks.
 - Prevent concurrent overbooking.
-- Integrate customer and business reservation interfaces.
+- Develop and integrate customer and business reservation interfaces.
 
-Deliverable:
-- A functional end-to-end appointment booking flow.
+Responsibilities:
+
+- **Ian:** Integration coordination, backend support and infrastructure verification.
+- **Camilo:** Assigned booking-related frontend pages and API integration.
+- **Nikita:** Assigned booking-related frontend pages and API integration.
+- **Mohamed:** Booking endpoints, availability calculations, capacity protection and booking state transitions.
+
+**Deliverable:** A functional end-to-end appointment booking flow.
 
 ### Sprint 4 — Administration, Testing and Delivery
 
 **Weeks 7–8**
 
 Objectives:
+
 - Implement administrative booking oversight.
 - Implement administrative audit logging.
 - Implement basic business statistics.
@@ -210,10 +322,16 @@ Objectives:
 - Verify GitHub Actions checks.
 - Prepare the final demonstration and documentation.
 
-Deliverable:
-- A tested and demonstrable BookFlow MVP.
+Responsibilities:
 
-## 7. Definition of Done
+- **Ian:** Integration testing, infrastructure verification, documentation and demonstration coordination.
+- **Camilo:** Assigned administrative or statistics frontend features, UI fixes and testing.
+- **Nikita:** Assigned administrative or statistics frontend features, API integration fixes and testing.
+- **Mohamed:** Administrative endpoints, statistics, backend testing and bug fixes.
+
+**Deliverable:** A tested and demonstrable BookFlow MVP.
+
+## 8. Definition of Done
 
 A task is considered complete when:
 
@@ -226,31 +344,42 @@ A task is considered complete when:
 - The Pull Request has been reviewed and merged.
 - The corresponding GitHub Issue is closed or marked Done.
 
-## 8. Communication Rules
+For frontend features, completion also requires verifying communication with the relevant backend endpoints when those endpoints are available.
+
+## 9. Communication Rules
 
 - Important technical decisions must be documented.
 - Developers should report blockers as soon as possible.
-- API changes must be communicated to frontend developers.
+- API changes must be communicated to both frontend developers.
 - Database changes must include migrations.
+- Shared frontend conventions must be respected.
 - Integration issues should be discussed before making incompatible changes.
 - Tasks may be reassigned when necessary to maintain progress.
 
-## 9. Integration Strategy
+## 10. Integration Strategy
 
 Frontend and backend development may proceed in parallel.
 
-The API contract is the shared reference between both teams.
+The API contract is the shared reference between frontend and backend development.
+
+Camilo and Nikita are individually responsible for integrating their assigned frontend features with the backend.
 
 Frontend developers may initially use mock data while backend endpoints are under development.
 
-Before completing an integration task:
-1. Confirm the implemented endpoint.
+Shared API utilities should be reused to maintain consistent request handling and authentication behavior.
+
+Before completing an integrated frontend feature:
+
+1. Confirm the implemented backend endpoint.
 2. Verify request and response schemas.
 3. Test successful requests.
 4. Test validation and authorization errors.
-5. Verify the user interface updates correctly.
+5. Verify loading and error states.
+6. Verify that the user interface updates correctly.
 
-## 10. Testing Strategy
+Ian coordinates integration activities and assists with cross-component issues but is not responsible for implementing every frontend integration.
+
+## 11. Testing Strategy
 
 Testing priorities:
 
@@ -267,14 +396,16 @@ Testing priorities:
 
 Automated tests should focus on critical backend business rules.
 
-Manual testing may be used for frontend flows and final demonstrations.
+Frontend developers must test their assigned pages and interactions.
 
-## 11. Final Delivery
+Manual testing may be used for complete user flows and final demonstrations.
+
+## 12. Final Delivery
 
 The project must include:
 
-- Functional frontend.
-- Functional backend.
+- Functional React frontend.
+- Functional ElysiaJS backend.
 - PostgreSQL database and migrations.
 - Docker Compose configuration.
 - GitHub Actions CI.
