@@ -286,104 +286,218 @@ Infrastructure and coordination Issues should be assigned to Ian.
 
 ## 7. Sprint Planning
 
-The project consists of four two-week sprints.
+The project is organized into four two-week sprints.
+
+Each sprint must produce a verifiable deliverable. Development tasks may begin before their target sprint when dependencies are ready.
+
+Frontend responsibilities are divided by complete features. Camilo and Nikita each implement, integrate, and test their assigned pages.
 
 ### Sprint 1 — Project Foundation
 
 **Weeks 1–2**
 
-Objectives:
+**Goal:** Establish a working development environment and the initial application structure.
 
-- Confirm MVP requirements.
-- Complete architecture and API documentation.
-- Configure React, TypeScript, Vite and Tailwind CSS.
-- Configure Bun, ElysiaJS and PostgreSQL.
-- Define initial Drizzle ORM schemas.
-- Configure Docker Compose.
+#### Ian — Infrastructure and Coordination
+- Configure Docker Compose for frontend, backend, and PostgreSQL.
+- Define environment variables in `.env.example`.
 - Configure initial GitHub Actions workflows.
-- Establish the frontend and backend project structures.
-- Agree on frontend conventions and reusable components.
+- Maintain project documentation.
+- Verify that all services can start locally.
 
-Responsibilities:
+#### Camilo — Frontend Initialization
+- Initialize React, TypeScript, and Vite.
+- Configure Tailwind CSS.
+- Install and configure React Router.
+- Create the agreed role-based directory structure.
+- Implement basic application layouts and navigation.
+- Create initial login and registration pages with client-side validation.
+- Document frontend installation and development commands.
 
-- **Ian:** Documentation, Docker Compose, CI and repository coordination.
-- **Camilo:** Frontend foundation and assigned initial components or pages.
-- **Nikita:** Frontend foundation and assigned initial components or pages.
-- **Mohamed:** Backend foundation, database configuration and initial schemas.
+#### Nikita — Public Frontend Pages
+- Develop the Home page.
+- Develop the business catalog page.
+- Develop the business details page.
+- Create reusable components required by these pages.
+- Use mock data until the corresponding backend endpoints are available.
+- Follow the shared frontend conventions established by Camilo.
 
-**Deliverable:** The frontend, backend and database services start locally, with a working project structure.
+#### Mohamed — Backend Initialization
+- Initialize Bun and ElysiaJS.
+- Configure PostgreSQL connectivity through Drizzle ORM.
+- Implement initial database schemas and migrations.
+- Create a health-check endpoint.
+- Configure backend environment variables.
+- Verify database connectivity and migration execution.
+
+**Acceptance Criteria:**
+- Docker Compose starts the application services.
+- The backend responds to a health-check request.
+- PostgreSQL is accessible from the backend.
+- Database migrations execute successfully.
+- The frontend starts and supports navigation between initial pages.
+- Initial frontend pages render correctly.
+- GitHub Actions runs initial automated checks.
+
+**Deliverable:** A reproducible local development environment with functional frontend and backend foundations.
 
 ### Sprint 2 — Authentication and Business Management
 
 **Weeks 3–4**
 
-Objectives:
+**Goal:** Implement working authentication and allow approved businesses to publish services.
 
-- Implement registration and login.
+#### Ian — Integration and CI
+- Verify frontend/backend communication.
+- Extend CI with available build, type-checking, and test commands.
+- Support integration troubleshooting.
+- Review API contract consistency.
+
+#### Camilo — Authentication
+- Connect registration and login pages to the backend.
+- Implement authentication state and logout.
+- Implement protected routes.
+- Handle authentication errors and loading states.
+- Test customer and business-owner authentication flows.
+
+#### Nikita — Business Management
+- Connect the public catalog and business details pages to the API.
+- Implement business registration and profile pages.
+- Implement service creation, editing, and deactivation interfaces.
+- Implement a minimal administrative business-approval page.
+- Integrate assigned pages with the corresponding API endpoints.
+
+#### Mohamed — Authentication and Business API
+- Implement registration, login, logout, and session handling.
 - Implement role-based authorization.
 - Implement business registration and administrative approval.
-- Implement business and service management.
-- Implement recurring schedules and availability exceptions.
-- Develop the public business catalog.
-- Connect completed frontend pages to the corresponding backend endpoints.
+- Implement public business and service endpoints.
+- Implement service management endpoints.
+- Begin implementing recurring schedules and availability calculations.
+- Add tests for authentication and permissions.
 
-Responsibilities:
+**Acceptance Criteria:**
+- Customers and business owners can register and log in.
+- Protected endpoints reject unauthorized requests.
+- A business owner can submit a business for approval.
+- An administrator can approve or reject a business.
+- An approved business can create and manage services.
+- Published services appear in the public catalog.
+- Frontend pages use real API responses.
 
-- **Ian:** Integration support, infrastructure maintenance and progress coordination.
-- **Camilo:** Assigned authentication, catalog or business-management frontend features, including API integration.
-- **Nikita:** Assigned authentication, catalog or business-management frontend features, including API integration.
-- **Mohamed:** Authentication, authorization, business and service endpoints.
+**Deliverable:** Functional authentication, business approval, service management, and public catalog integration.
 
-**Deliverable:** Users can register and log in, and approved businesses can configure and publish services.
-
-### Sprint 3 — Booking System
+### Sprint 3 — Appointment Booking
 
 **Weeks 5–6**
 
-Objectives:
+**Goal:** Complete the main booking workflow with correct availability and capacity management.
 
-- Implement appointment availability calculations.
-- Implement booking requests.
-- Implement manual booking approval and rejection.
-- Implement booking expiration.
-- Implement cancellation rules.
+#### Ian — Integration and Testing
+- Coordinate end-to-end booking integration.
+- Prepare concurrency and capacity test scenarios.
+- Support backend troubleshooting.
+- Verify booking flows across user roles.
+
+#### Camilo — Customer and Business Reservations
+- Implement appointment slot selection.
+- Implement booking request submission.
+- Implement customer booking history.
+- Implement pending-request withdrawal and cancellation.
+- Implement business booking approval and rejection interfaces.
+- Implement business booking cancellation.
+- Integrate all assigned pages with the backend.
+
+#### Nikita — Availability Management
+- Implement recurring schedule management.
+- Implement availability exception management.
+- Implement external capacity-block management.
+- Integrate these features with the backend.
+- Test schedule changes and availability updates.
+
+#### Mohamed — Booking API
+- Complete availability calculation.
+- Implement transactional booking creation.
+- Implement pending booking expiration.
+- Implement booking approval and rejection.
+- Implement customer and business cancellation rules.
 - Implement external capacity blocks.
+- Enforce independent service capacity.
 - Prevent concurrent overbooking.
-- Develop and integrate customer and business reservation interfaces.
+- Add tests for booking state transitions and capacity.
 
-Responsibilities:
+**Acceptance Criteria:**
+- Customers can view available appointment slots.
+- Customers can submit booking requests.
+- Pending requests reserve capacity.
+- Business owners can approve or reject requests.
+- Customers and businesses can cancel according to their deadlines.
+- External capacity blocks affect availability.
+- Expired requests no longer occupy capacity.
+- Concurrent requests cannot exceed service capacity.
 
-- **Ian:** Integration coordination, backend support and infrastructure verification.
-- **Camilo:** Assigned booking-related frontend pages and API integration.
-- **Nikita:** Assigned booking-related frontend pages and API integration.
-- **Mohamed:** Booking endpoints, availability calculations, capacity protection and booking state transitions.
-
-**Deliverable:** A functional end-to-end appointment booking flow.
+**Deliverable:** A functional end-to-end appointment booking system.
 
 ### Sprint 4 — Administration, Testing and Delivery
 
 **Weeks 7–8**
 
-Objectives:
+**Goal:** Complete administrative functionality, stabilize the application, and prepare the final demonstration.
 
+#### Ian — Final Integration and Delivery
+- Coordinate complete system testing.
+- Verify Docker Compose and environment configuration.
+- Verify GitHub Actions workflows.
+- Update technical documentation.
+- Prepare demonstration scenarios.
+- Coordinate critical bug fixes.
+
+#### Camilo — Authentication and Booking Quality
+- Fix authentication and reservation interface defects.
+- Improve loading, validation, and error handling.
+- Test complete customer booking workflows.
+- Test business booking management workflows.
+- Support final frontend integration.
+
+#### Nikita — Administration and Statistics
+- Implement administrative dashboard pages.
+- Implement user, business, and booking oversight interfaces.
+- Implement administrative booking cancellation.
+- Implement business and platform statistics interfaces.
+- Integrate administrative audit views.
+- Test assigned features and fix UI defects.
+
+#### Mohamed — Administration and Backend Quality
 - Implement administrative booking oversight.
-- Implement administrative audit logging.
-- Implement basic business statistics.
-- Complete remaining frontend/backend integration.
-- Test authentication, authorization and booking rules.
-- Fix critical bugs.
-- Verify Docker Compose setup.
-- Verify GitHub Actions checks.
-- Prepare the final demonstration and documentation.
+- Implement administrative cancellation and audit logging.
+- Implement business and platform statistics endpoints.
+- Complete backend tests.
+- Fix critical backend defects.
+- Verify database migrations and data integrity.
 
-Responsibilities:
+**Acceptance Criteria:**
+- Administrators can inspect users, businesses, and bookings.
+- Administrators can cancel problematic bookings with recorded reasons.
+- Business and platform statistics are available.
+- Critical booking and authorization tests pass.
+- Frontend and backend integrations function correctly.
+- Docker Compose starts the complete application.
+- GitHub Actions checks pass.
+- The MVP can be demonstrated locally.
 
-- **Ian:** Integration testing, infrastructure verification, documentation and demonstration coordination.
-- **Camilo:** Assigned administrative or statistics frontend features, UI fixes and testing.
-- **Nikita:** Assigned administrative or statistics frontend features, API integration fixes and testing.
-- **Mohamed:** Administrative endpoints, statistics, backend testing and bug fixes.
+**Deliverable:** A tested, documented, and demonstrable BookFlow MVP.
 
-**Deliverable:** A tested and demonstrable BookFlow MVP.
+### 7.1 Sprint Execution Rules
+
+- Tasks must be tracked through GitHub Issues.
+- Every Issue must have an owner, sprint, and acceptance criteria.
+- Dependencies must be identified before implementation.
+- Developers may use mock data when backend endpoints are not ready.
+- Mock data must be replaced by real API integration before a feature is considered complete.
+- Shared frontend changes must be coordinated between Camilo and Nikita.
+- Critical backend functionality should be implemented and tested as early as possible.
+- Unfinished tasks must be reviewed and rescheduled rather than automatically marked complete.
+- Sprint deliverables must be verified before closing the sprint.
 
 ## 8. Definition of Done
 
