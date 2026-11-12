@@ -249,7 +249,7 @@ frontend/
 - Frontend developers must coordinate changes to shared components, routing, and authentication utilities.
 
 This structure represents the intended architecture. Directories and files will be created progressively during development.
-```
+
 
 ## 8. Docker Compose
 
