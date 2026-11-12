@@ -158,6 +158,12 @@ Capacity validation and booking creation must be concurrency-safe.
 
 ## 7. Project Structure
 
+The project follows a modular structure, separating frontend, backend, infrastructure, and technical documentation.
+
+The frontend is organized by application area and user role rather than by developer. This makes the codebase easier to navigate, maintain, review, and extend.
+
+### 7.1 Repository Structure
+
 ```text
 bookflow/
 ├── .github/
@@ -169,11 +175,7 @@ bookflow/
 │   └── Dockerfile
 ├── frontend/
 │   ├── src/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   ├── services/
-│   │   ├── hooks/
-│   │   └── types/
+│   ├── pages/
 │   ├── package.json
 │   └── Dockerfile
 ├── docs/
@@ -189,7 +191,65 @@ bookflow/
 └── README.md
 ```
 
-This is the target structure. Some files and directories will be created during development.
+### 7.2 Frontend Structure
+
+```text
+frontend/
+├── src/
+│   ├── pages/
+│   │   ├── public/
+│   │   ├── auth/
+│   │   ├── customer/
+│   │   ├── business/
+│   │   └── admin/
+│   ├── components/
+│   ├── services/
+│   │   ├── public/
+│   │   ├── auth/
+│   │   ├── customer/
+│   │   ├── business/
+│   │   └── admin/
+│   ├── hooks/
+│   ├── contexts/
+│   ├── routes/
+│   ├── types/
+│   ├── lib/
+│   ├── App.tsx
+│   └── main.tsx
+├── package.json
+└── Dockerfile
+```
+
+### 7.3 Frontend Directory Responsibilities
+
+| Directory | Responsibility |
+|---|---|
+| `pages/public/` | Home page, business catalog, business details |
+| `pages/auth/` | Login and registration |
+| `pages/customer/` | Customer booking and appointment management |
+| `pages/business/` | Business dashboard, services, schedules, reservations |
+| `pages/admin/` | Administrative dashboard and oversight |
+| `components/` | Reusable UI components |
+| `services/` | API communication, grouped by application area |
+| `hooks/` | Reusable React hooks |
+| `contexts/` | Shared application state and authentication context |
+| `routes/` | Route configuration and role-based route guards |
+| `types/` | Shared TypeScript types |
+| `lib/` | General utilities and helpers |
+
+### 7.4 Organization Rules
+
+- Frontend pages must be grouped by application area and user role.
+- Each frontend developer implements and integrates their assigned features.
+- Files must not be organized into developer-specific directories.
+- Shared components must be reusable and should not duplicate existing functionality.
+- API communication should be separated from page presentation logic.
+- Protected routes must enforce appropriate frontend navigation restrictions.
+- Backend authorization remains mandatory for every protected operation.
+- Frontend developers must coordinate changes to shared components, routing, and authentication utilities.
+
+This structure represents the intended architecture. Directories and files will be created progressively during development.
+```
 
 ## 8. Docker Compose
 
