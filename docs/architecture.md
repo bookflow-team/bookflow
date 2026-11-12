@@ -15,27 +15,31 @@ The application will run locally using Docker Compose. GitHub Actions will provi
 
 ## 2. Technology Stack
 
-### Frontend
-- React
-- TypeScript
-- Vite
-- Tailwind CSS
-- React Router
-- Fetch API
+### 2.1 Frontend
 
-### Backend
-- Bun (runtime and package manager)
-- ElysiaJS (HTTP framework)
-- Zod (data validation)
-- Drizzle ORM (database access and migrations)
-- PostgreSQL (relational database)
+- **React** — User interface library.
+- **TypeScript** — Statically typed programming language.
+- **Vite** — Development server and build tool.
+- **Tailwind CSS** — Utility-first CSS framework for styling.
+- **React Router** — Client-side routing and navigation.
+- **Fetch API** — HTTP communication with the backend.
 
-### Infrastructure
-- Docker
-- Docker Compose
-- GitHub Actions
-- GitHub Projects
-- Git and GitHub
+### 2.2 Backend
+
+- **Bun** — JavaScript/TypeScript runtime and package manager.
+- **ElysiaJS** — HTTP framework for building the REST API.
+- **Zod** — Schema validation and data parsing.
+- **Drizzle ORM** — Type-safe database access and migrations.
+- **PostgreSQL** — Relational database management system.
+
+### 2.3 Infrastructure and Collaboration
+
+- **Docker** — Application containerization.
+- **Docker Compose** — Multi-container orchestration for local development.
+- **GitHub Actions** — Continuous integration and automated checks.
+- **GitHub Projects** — Task tracking and sprint management.
+- **Git** — Version control system.
+- **GitHub** — Source code hosting and team collaboration.
 
 ## 3. System Components
 
