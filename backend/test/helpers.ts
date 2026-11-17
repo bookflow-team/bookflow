@@ -9,7 +9,7 @@ if (!/test/i.test(new URL(url).pathname)) {
   throw new Error(`Refusing to run tests against "${new URL(url).pathname.slice(1)}": the database name must contain "test"`);
 }
 
-export const { db, client } = createDb(url, 5);
+export const { db, client } = createDb(url, 30);
 
 afterAll(async () => {
   await client.end();
