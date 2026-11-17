@@ -3,7 +3,9 @@ import { Elysia } from 'elysia';
 import { z } from 'zod';
 import { createApp } from '../src/app';
 import { loadConfig } from '../src/config';
+import { createDb } from '../src/db/client';
 import { AppError } from '../src/errors';
+import { db } from './helpers';
 
 const testRoutes = new Elysia({ prefix: '/api/v1' })
   .post('/echo', ({ body }) => ({ data: body }), {
@@ -16,7 +18,7 @@ const testRoutes = new Elysia({ prefix: '/api/v1' })
     throw new AppError('FORBIDDEN', 'You cannot do that');
   });
 
-const app = createApp({ corsOrigin: 'http://localhost:5173' }).use(testRoutes);
+const app = createApp({ db, corsOrigin: 'http://localhost:5173' }).use(testRoutes);
 
 const callRoot = (path: string, init?: RequestInit) => app.handle(new Request(`http://localhost${path}`, init));
 const call = (path: string, init?: RequestInit) => callRoot(`/api/v1${path}`, init);
@@ -24,11 +26,21 @@ const postJson = (path: string, body: string) =>
   call(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body });
 
 describe('app', () => {
-  test('health answers on /health and on /api/v1/health', async () => {
+  test('health answers on /health and on /api/v1/health once the database answers', async () => {
     for (const res of [await callRoot('/health'), await call('/health')]) {
       expect(res.status).toBe(200);
       expect(await res.json()).toEqual({ data: { status: 'ok' } });
     }
+  });
+
+  test('health fails when the database cannot be reached', async () => {
+    const dead = createDb('postgres://postgres@127.0.0.1:1/none', 1);
+    const res = await createApp({ db: dead.db, corsOrigin: 'http://localhost:5173' }).handle(
+      new Request('http://localhost/health'),
+    );
+    expect(res.status).toBe(500);
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe('INTERNAL_ERROR');
+    await dead.client.end();
   });
 
   test('valid input reaches the handler', async () => {
@@ -138,16 +150,16 @@ describe('OpenAPI', () => {
 });
 
 describe('config', () => {
-  const ok = { CORS_ORIGIN: 'http://localhost:5173' };
+  const ok = { DATABASE_URL: 'postgres://u@localhost/db', CORS_ORIGIN: 'http://localhost:5173' };
 
   test('applies defaults', () => {
     expect(loadConfig(ok)).toMatchObject({ BACKEND_PORT: 8000, BACKEND_HOST: '0.0.0.0' });
   });
 
   test('fails fast on bad values', () => {
-    expect(() => loadConfig({})).toThrow(/CORS_ORIGIN/);
-    expect(() => loadConfig({ CORS_ORIGIN: 'http://localhost:5173/' })).toThrow(/CORS_ORIGIN/);
-    expect(() => loadConfig({ CORS_ORIGIN: 'javascript:alert(1)' })).toThrow(/CORS_ORIGIN/);
+    expect(() => loadConfig({})).toThrow(/DATABASE_URL/);
+    expect(() => loadConfig({ ...ok, CORS_ORIGIN: 'http://localhost:5173/' })).toThrow(/CORS_ORIGIN/);
+    expect(() => loadConfig({ ...ok, CORS_ORIGIN: 'javascript:alert(1)' })).toThrow(/CORS_ORIGIN/);
     expect(() => loadConfig({ ...ok, BACKEND_PORT: '99999' })).toThrow(/BACKEND_PORT/);
   });
 });
