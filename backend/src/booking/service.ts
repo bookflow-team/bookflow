@@ -3,10 +3,26 @@ import type { PgDatabase } from 'drizzle-orm/pg-core';
 import type { PostgresJsQueryResultHKT } from 'drizzle-orm/postgres-js';
 import type { Db } from '../db/client';
 import type * as schema from '../db/schema';
-import { availabilityExceptions, bookings, businesses, serviceSchedules, services, timeBlocks } from '../db/schema';
+import {
+  adminActions,
+  availabilityExceptions,
+  bookings,
+  businesses,
+  serviceSchedules,
+  services,
+  timeBlocks,
+} from '../db/schema';
 import { AppError } from '../errors';
 import { maxOccupancy, type Occupant } from './occupancy';
-import { BOOKING_HORIZON_DAYS, effectiveStatus, HOUR, MAX_PENDING_PER_CUSTOMER, pendingExpiry } from './status';
+import {
+  BOOKING_HORIZON_DAYS,
+  CUSTOMER_CANCEL_NOTICE_MS,
+  effectiveStatus,
+  HOUR,
+  MAX_PENDING_PER_CUSTOMER,
+  OWNER_CANCEL_NOTICE_MS,
+  pendingExpiry,
+} from './status';
 import { dayWindow, findSlot, localDateOf, slotsForDate, type Slot } from './time';
 
 export type Actor = { id: string; role: 'CUSTOMER' | 'BUSINESS_OWNER' | 'ADMIN' };
@@ -215,4 +231,62 @@ export async function decideBooking(
   const status = effectiveStatus(found.booking, now);
   if (status === 'EXPIRED') throw new AppError('BOOKING_EXPIRED', 'The approval deadline has passed');
   throw new AppError('INVALID_BOOKING_STATUS', `A ${status} booking cannot be ${decision === 'APPROVE' ? 'approved' : 'rejected'}`);
+}
+
+export async function cancelBooking(
+  db: Db,
+  actor: Actor,
+  bookingId: string,
+  reason: string | undefined,
+  now = new Date(),
+): Promise<BookingRow> {
+  const trimmed = reason?.trim() || undefined;
+  if (actor.role === 'ADMIN' && !trimmed) {
+    throw new AppError('VALIDATION_ERROR', 'A reason is required for an administrative cancellation');
+  }
+
+  return db.transaction(async (tx) => {
+    const found = await loadBookingWithOwner(tx, bookingId);
+    if (!found) throw new AppError('NOT_FOUND', 'Booking not found');
+    const { booking, ownerId } = found;
+
+    const isCustomer = actor.role === 'CUSTOMER' && booking.customerId === actor.id;
+    const isOwner = actor.role === 'BUSINESS_OWNER' && ownerId === actor.id;
+    const isAdmin = actor.role === 'ADMIN';
+    if (!isCustomer && !isOwner && !isAdmin) throw new AppError('FORBIDDEN', 'You cannot cancel this booking');
+
+    const status = effectiveStatus(booking, now);
+    if (status === 'EXPIRED') throw new AppError('BOOKING_EXPIRED', 'The request has already expired');
+    if (status !== 'PENDING' && status !== 'CONFIRMED') {
+      throw new AppError('INVALID_BOOKING_STATUS', `A ${status} booking cannot be cancelled`);
+    }
+    if (status === 'PENDING' && isOwner) {
+      throw new AppError('INVALID_BOOKING_STATUS', 'Reject a pending request instead of cancelling it');
+    }
+    if (status === 'CONFIRMED' && !isAdmin) {
+      const notice = isCustomer ? CUSTOMER_CANCEL_NOTICE_MS : OWNER_CANCEL_NOTICE_MS;
+      if (booking.startAt.getTime() - now.getTime() < notice) {
+        throw new AppError('CANCELLATION_DEADLINE_PASSED', 'Too late to cancel this booking');
+      }
+    }
+
+    const [updated] = await tx
+      .update(bookings)
+      .set({ status: 'CANCELLED', cancelledBy: actor.role, statusReason: trimmed ?? null, updatedAt: now })
+      .where(and(eq(bookings.id, bookingId), eq(bookings.status, booking.status)))
+      .returning();
+    if (!updated) throw new AppError('CONFLICT', 'The booking was changed by someone else, please retry');
+
+    if (isAdmin) {
+      await tx.insert(adminActions).values({
+        adminId: actor.id,
+        actionType: 'CANCEL_BOOKING',
+        targetType: 'BOOKING',
+        targetId: bookingId,
+        reason: trimmed ?? '',
+        createdAt: now,
+      });
+    }
+    return updated;
+  });
 }

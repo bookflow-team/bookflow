@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from '@jest/globals';
 import { eq } from 'drizzle-orm';
-import { createBooking, decideBooking, getAvailability, type Actor } from '../src/booking/service';
-import { availabilityExceptions, bookings } from '../src/db/schema';
+import { cancelBooking, createBooking, decideBooking, getAvailability, type Actor } from '../src/booking/service';
+import { adminActions, availabilityExceptions, bookings } from '../src/db/schema';
 import { AppError, type ErrorCode } from '../src/errors';
-import { db, H, makeService, makeUser, NOW, resetDb, THU_10, THU_11 } from './helpers';
+import { db, H, makeService, makeUser, NOW, resetDb, THU_09, THU_10, THU_11, THU_12 } from './helpers';
 
 async function expectCode(p: Promise<unknown>, code: ErrorCode) {
   try {
@@ -20,6 +20,7 @@ const actor = (u: { id: string }, role: Actor['role']): Actor => ({ id: u.id, ro
 const book = (customerId: string, serviceId: string, startAt = THU_10, now = NOW) =>
   createBooking(db, { customerId, serviceId, startAt }, now);
 const statusOf = async (id: string) => (await db.select().from(bookings).where(eq(bookings.id, id)))[0]?.status;
+const before = (hours: number) => new Date(THU_10.getTime() - hours * H);
 
 async function shop(capacity = 5) {
   const s = await makeService({ capacity });
@@ -115,6 +116,17 @@ describe('creating a booking', () => {
     await expectCode(book(c.id, inactive.service.id), 'SERVICE_UNAVAILABLE');
     await expectCode(book(c.id, '00000000-0000-0000-0000-000000000000'), 'NOT_FOUND');
   });
+
+  test('one customer cannot hoard capacity with unanswered requests', async () => {
+    const { service } = await makeService({ capacity: 5 });
+    const c = await makeUser('CUSTOMER');
+    const first = await book(c.id, service.id, THU_09);
+    await book(c.id, service.id, THU_10);
+    await book(c.id, service.id, THU_11);
+    await expectCode(book(c.id, service.id, THU_12), 'TOO_MANY_PENDING');
+    await cancelBooking(db, actor(c, 'CUSTOMER'), first.id, undefined, NOW);
+    expect((await book(c.id, service.id, THU_12)).status).toBe('PENDING');
+  });
 });
 
 describe('capacity', () => {
@@ -124,6 +136,15 @@ describe('capacity', () => {
     const other = await makeUser('CUSTOMER');
     await expectCode(book(other.id, s.service.id), 'CAPACITY_EXCEEDED');
     await decideBooking(db, s.ownerActor, a.id, 'REJECT', 'Fully booked in the workshop', NOW);
+    expect((await book(other.id, s.service.id)).status).toBe('PENDING');
+  });
+
+  test('withdrawing releases capacity too', async () => {
+    const s = await shop(1);
+    const a = await s.pending();
+    const other = await makeUser('CUSTOMER');
+    await expectCode(book(other.id, s.service.id), 'CAPACITY_EXCEEDED');
+    await cancelBooking(db, a.customer, a.id, undefined, NOW);
     expect((await book(other.id, s.service.id)).status).toBe('PENDING');
   });
 
@@ -182,5 +203,79 @@ describe('approval and rejection', () => {
     const p = await s.pending();
     const late = new Date(NOW.getTime() + 24 * H);
     await expectCode(decideBooking(db, s.ownerActor, p.id, 'APPROVE', undefined, late), 'BOOKING_EXPIRED');
+  });
+});
+
+describe('cancellation', () => {
+  test('a customer may cancel a confirmed booking up to 12 hours before the start, not later', async () => {
+    const s = await shop();
+    const ok = await s.confirmed();
+    const tooLate = await s.confirmed();
+    const exactly12 = before(12);
+    const cancelled = await cancelBooking(db, ok.customer, ok.id, 'Plans changed', exactly12);
+    expect(cancelled.status).toBe('CANCELLED');
+    expect(cancelled.cancelledBy).toBe('CUSTOMER');
+    expect(cancelled.statusReason).toBe('Plans changed');
+    await expectCode(cancelBooking(db, tooLate.customer, tooLate.id, undefined, new Date(exactly12.getTime() + 1)), 'CANCELLATION_DEADLINE_PASSED');
+    expect(await statusOf(tooLate.id)).toBe('CONFIRMED');
+  });
+
+  test('the business may cancel up to 6 hours before the start', async () => {
+    const s = await shop();
+    const ok = await s.confirmed();
+    const tooLate = await s.confirmed();
+    expect((await cancelBooking(db, s.ownerActor, ok.id, 'Barber is ill', before(7))).cancelledBy).toBe('BUSINESS_OWNER');
+    await expectCode(cancelBooking(db, s.ownerActor, tooLate.id, 'Barber is ill', before(5)), 'CANCELLATION_DEADLINE_PASSED');
+  });
+
+  test('between 6 and 12 hours only the business can still cancel', async () => {
+    const s = await shop();
+    const a = await s.confirmed();
+    const b = await s.confirmed();
+    await expectCode(cancelBooking(db, a.customer, a.id, undefined, before(11)), 'CANCELLATION_DEADLINE_PASSED');
+    expect((await cancelBooking(db, s.ownerActor, b.id, 'Emergency', before(11))).status).toBe('CANCELLED');
+  });
+
+  test('an administrator can cancel any time with a reason, and it is audited in the same transaction', async () => {
+    const s = await shop();
+    const c = await s.confirmed();
+    const admin = await makeUser('ADMIN');
+    await expectCode(cancelBooking(db, actor(admin, 'ADMIN'), c.id, '   ', before(1)), 'VALIDATION_ERROR');
+    expect(await statusOf(c.id)).toBe('CONFIRMED');
+    expect(await db.select().from(adminActions)).toHaveLength(0);
+
+    const cancelled = await cancelBooking(db, actor(admin, 'ADMIN'), c.id, 'Duplicate reservation', before(1));
+    expect(cancelled.cancelledBy).toBe('ADMIN');
+    const audit = await db.select().from(adminActions);
+    expect(audit).toHaveLength(1);
+    expect(audit[0]).toMatchObject({ adminId: admin.id, actionType: 'CANCEL_BOOKING', targetType: 'BOOKING', targetId: c.id, reason: 'Duplicate reservation' });
+  });
+
+  test('strangers cannot cancel', async () => {
+    const s = await shop();
+    const c = await s.confirmed();
+    const otherCustomer = await makeUser('CUSTOMER');
+    const otherOwner = await makeUser('BUSINESS_OWNER');
+    await expectCode(cancelBooking(db, actor(otherCustomer, 'CUSTOMER'), c.id, undefined, before(20)), 'FORBIDDEN');
+    await expectCode(cancelBooking(db, actor(otherOwner, 'BUSINESS_OWNER'), c.id, undefined, before(20)), 'FORBIDDEN');
+  });
+
+  test('a customer can withdraw a pending request at any time; the owner must reject instead', async () => {
+    const s = await shop();
+    const a = await s.pending();
+    const b = await s.pending();
+    await expectCode(cancelBooking(db, s.ownerActor, a.id, 'x', NOW), 'INVALID_BOOKING_STATUS');
+    const withdrawn = await cancelBooking(db, a.customer, a.id, undefined, NOW);
+    expect(withdrawn.status).toBe('CANCELLED');
+    await expectCode(cancelBooking(db, a.customer, a.id, undefined, NOW), 'INVALID_BOOKING_STATUS');
+    expect(await statusOf(b.id)).toBe('PENDING');
+  });
+
+  test('expired and completed bookings cannot be cancelled', async () => {
+    const s = await shop();
+    const stale = await s.pending();
+    const done = await s.confirmed();
+    await expectCode(cancelBooking(db, stale.customer, stale.id, undefined, new Date(NOW.getTime() + 25 * H)), 'BOOKING_EXPIRED');
+    await expectCode(cancelBooking(db, done.customer, done.id, undefined, new Date(THU_10.getTime() + 2 * H)), 'INVALID_BOOKING_STATUS');
   });
 });
