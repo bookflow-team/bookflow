@@ -29,6 +29,8 @@ export type Actor = { id: string; role: 'CUSTOMER' | 'BUSINESS_OWNER' | 'ADMIN' 
 type Q = PgDatabase<PostgresJsQueryResultHKT, typeof schema>;
 type BookingRow = typeof bookings.$inferSelect;
 
+const FAR_FUTURE_MS = 10 * 365 * 24 * HOUR;
+
 async function loadOccupants(q: Q, serviceId: string, from: Date, to: Date, now: Date): Promise<Occupant[]> {
   const held = await q
     .select({ startAt: bookings.startAt, endAt: bookings.endAt })
@@ -92,6 +94,17 @@ async function loadBookingWithOwner(q: Q, bookingId: string) {
     .innerJoin(businesses, eq(businesses.id, services.businessId))
     .where(eq(bookings.id, bookingId));
   return row;
+}
+
+async function lockOwnedService(q: Q, actor: Actor, serviceId: string) {
+  const [service] = await q.select().from(services).where(eq(services.id, serviceId)).for('update');
+  if (!service) throw new AppError('NOT_FOUND', 'Service not found');
+  const [business] = await q.select().from(businesses).where(eq(businesses.id, service.businessId));
+  if (!business) throw new AppError('INTERNAL_ERROR', 'Service without a business');
+  if (actor.role !== 'BUSINESS_OWNER' || business.ownerId !== actor.id) {
+    throw new AppError('FORBIDDEN', 'You do not own this service');
+  }
+  return { service, business };
 }
 
 export async function getAvailability(db: Db, serviceId: string, date: string, now = new Date()) {
@@ -287,6 +300,66 @@ export async function cancelBooking(
         createdAt: now,
       });
     }
+    return updated;
+  });
+}
+
+export async function createTimeBlock(
+  db: Db,
+  actor: Actor,
+  input: {
+    serviceId: string;
+    startAt: Date;
+    endAt: Date;
+    units: number;
+    reason: 'EXTERNAL_BOOKING' | 'UNAVAILABLE';
+  },
+  now = new Date(),
+) {
+  if (input.endAt.getTime() <= input.startAt.getTime()) {
+    throw new AppError('VALIDATION_ERROR', 'endAt must be after startAt');
+  }
+  if (!Number.isInteger(input.units) || input.units < 1) {
+    throw new AppError('VALIDATION_ERROR', 'units must be a positive integer');
+  }
+  return db.transaction(async (tx) => {
+    const { service } = await lockOwnedService(tx, actor, input.serviceId);
+    const occupants = await loadOccupants(tx, service.id, input.startAt, input.endAt, now);
+    const used = maxOccupancy(input.startAt.getTime(), input.endAt.getTime(), occupants);
+    if (used + input.units > service.capacity) {
+      throw new AppError('CAPACITY_EXCEEDED', 'Existing reservations leave too little capacity to block');
+    }
+    const [block] = await tx.insert(timeBlocks).values({ ...input, createdAt: now }).returning();
+    if (!block) throw new AppError('INTERNAL_ERROR', 'Block was not created');
+    return block;
+  });
+}
+
+export async function changeServiceCapacity(
+  db: Db,
+  actor: Actor,
+  serviceId: string,
+  capacity: number,
+  now = new Date(),
+) {
+  if (!Number.isInteger(capacity) || capacity < 1) {
+    throw new AppError('VALIDATION_ERROR', 'capacity must be a positive integer');
+  }
+  return db.transaction(async (tx) => {
+    const { service } = await lockOwnedService(tx, actor, serviceId);
+    if (capacity < service.capacity) {
+      const to = new Date(now.getTime() + FAR_FUTURE_MS);
+      const occupants = await loadOccupants(tx, service.id, now, to, now);
+      if (maxOccupancy(now.getTime(), to.getTime(), occupants) > capacity) {
+        throw new AppError('CAPACITY_EXCEEDED', 'Existing reservations need more capacity than this');
+      }
+    }
+    const [updated] = await tx
+      .update(services)
+      .set({ capacity, updatedAt: now })
+      .where(eq(services.id, serviceId))
+      .returning();
+    if (!updated) throw new AppError('INTERNAL_ERROR', 'Service was not updated');
     return updated;
   });
 }

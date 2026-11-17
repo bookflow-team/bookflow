@@ -1,6 +1,14 @@
 import { beforeEach, describe, expect, test } from '@jest/globals';
 import { eq } from 'drizzle-orm';
-import { cancelBooking, createBooking, decideBooking, getAvailability, type Actor } from '../src/booking/service';
+import {
+  cancelBooking,
+  changeServiceCapacity,
+  createBooking,
+  createTimeBlock,
+  decideBooking,
+  getAvailability,
+  type Actor,
+} from '../src/booking/service';
 import { adminActions, availabilityExceptions, bookings } from '../src/db/schema';
 import { AppError, type ErrorCode } from '../src/errors';
 import { db, H, makeService, makeUser, NOW, resetDb, THU_09, THU_10, THU_11, THU_12 } from './helpers';
@@ -171,6 +179,23 @@ describe('capacity', () => {
     const other = await makeUser('CUSTOMER');
     expect((await book(other.id, s.service.id, THU_11)).status).toBe('PENDING');
   });
+
+  test('a block that only partly covers a slot still takes that slot (capacity holds across the whole duration)', async () => {
+    const { owner, service } = await makeService({ capacity: 1 });
+    const half = new Date(THU_10.getTime() + 0.5 * H);
+    await createTimeBlock(db, actor(owner, 'BUSINESS_OWNER'), {
+      serviceId: service.id,
+      startAt: half,
+      endAt: new Date(half.getTime() + H),
+      units: 1,
+      reason: 'EXTERNAL_BOOKING',
+    }, NOW);
+    const c = await makeUser('CUSTOMER');
+    await expectCode(book(c.id, service.id, THU_10), 'CAPACITY_EXCEEDED');
+    await expectCode(book(c.id, service.id, THU_11), 'CAPACITY_EXCEEDED');
+    expect((await book(c.id, service.id, THU_12)).status).toBe('PENDING');
+    expect((await book(c.id, service.id, THU_09)).status).toBe('PENDING');
+  });
 });
 
 describe('approval and rejection', () => {
@@ -277,5 +302,53 @@ describe('cancellation', () => {
     const done = await s.confirmed();
     await expectCode(cancelBooking(db, stale.customer, stale.id, undefined, new Date(NOW.getTime() + 25 * H)), 'BOOKING_EXPIRED');
     await expectCode(cancelBooking(db, done.customer, done.id, undefined, new Date(THU_10.getTime() + 2 * H)), 'INVALID_BOOKING_STATUS');
+  });
+});
+
+describe('operations that add occupancy', () => {
+  test('an external block reduces availability and bookable capacity', async () => {
+    const { owner, service } = await makeService({ capacity: 2 });
+    await createTimeBlock(db, actor(owner, 'BUSINESS_OWNER'), {
+      serviceId: service.id,
+      startAt: THU_09,
+      endAt: THU_11,
+      units: 1,
+      reason: 'EXTERNAL_BOOKING',
+    }, NOW);
+    const day = await getAvailability(db, service.id, '2026-11-19', NOW);
+    expect(day.slots.map((s) => s.remainingCapacity)).toEqual([1, 1, 2, 2]);
+
+    const c1 = await makeUser('CUSTOMER');
+    const c2 = await makeUser('CUSTOMER');
+    await book(c1.id, service.id, THU_09);
+    await expectCode(book(c2.id, service.id, THU_09), 'CAPACITY_EXCEEDED');
+  });
+
+  test('a block that does not fit next to existing reservations is refused', async () => {
+    const s = await shop(1);
+    await s.pending(THU_10);
+    await expectCode(
+      createTimeBlock(db, s.ownerActor, { serviceId: s.service.id, startAt: THU_10, endAt: THU_11, units: 1, reason: 'UNAVAILABLE' }, NOW),
+      'CAPACITY_EXCEEDED',
+    );
+  });
+
+  test('only the owner can create blocks', async () => {
+    const s = await shop();
+    const other = await makeUser('BUSINESS_OWNER');
+    await expectCode(
+      createTimeBlock(db, actor(other, 'BUSINESS_OWNER'), { serviceId: s.service.id, startAt: THU_10, endAt: THU_11, units: 1, reason: 'UNAVAILABLE' }, NOW),
+      'FORBIDDEN',
+    );
+  });
+
+  test('capacity cannot be lowered below existing reservations', async () => {
+    const s = await shop(2);
+    const a = await s.pending();
+    await s.pending();
+    await expectCode(changeServiceCapacity(db, s.ownerActor, s.service.id, 1, NOW), 'CAPACITY_EXCEEDED');
+    expect((await changeServiceCapacity(db, s.ownerActor, s.service.id, 3, NOW)).capacity).toBe(3);
+    await cancelBooking(db, a.customer, a.id, undefined, NOW);
+    expect((await changeServiceCapacity(db, s.ownerActor, s.service.id, 1, NOW)).capacity).toBe(1);
   });
 });

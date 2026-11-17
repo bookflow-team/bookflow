@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from '@jest/globals';
 import { and, eq } from 'drizzle-orm';
-import { cancelBooking, createBooking, decideBooking } from '../src/booking/service';
+import { cancelBooking, createBooking, createTimeBlock, decideBooking } from '../src/booking/service';
 import { bookings, services } from '../src/db/schema';
 import { AppError } from '../src/errors';
 import { db, makeService, makeUser, NOW, resetDb, THU_10 } from './helpers';
@@ -52,6 +52,24 @@ describe('simultaneous requests', () => {
     await Promise.allSettled(customers.map((c) => naive(c.id)));
     const stored = await db.select().from(bookings).where(eq(bookings.serviceId, service.id));
     expect(stored.length).toBeGreaterThan(3);
+  });
+
+  test('a booking and an external block racing for the last unit: exactly one wins', async () => {
+    const { owner, service } = await makeService({ capacity: 1 });
+    const customer = await makeUser('CUSTOMER');
+    const results = await Promise.allSettled([
+      createBooking(db, { customerId: customer.id, serviceId: service.id, startAt: THU_10 }, NOW),
+      createTimeBlock(
+        db,
+        { id: owner.id, role: 'BUSINESS_OWNER' },
+        { serviceId: service.id, startAt: THU_10, endAt: new Date(THU_10.getTime() + 3_600_000), units: 1, reason: 'EXTERNAL_BOOKING' },
+        NOW,
+      ),
+    ]);
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    const loser = results.find((r): r is PromiseRejectedResult => r.status === 'rejected');
+    expect(loser?.reason).toBeInstanceOf(AppError);
+    expect((loser?.reason as AppError).code).toBe('CAPACITY_EXCEEDED');
   });
 
   test('approve and withdraw at the same moment: one wins, the other is told why, the state is consistent', async () => {
