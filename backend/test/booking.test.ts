@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test } from '@jest/globals';
-import { createBooking, getAvailability } from '../src/booking/service';
-import { availabilityExceptions } from '../src/db/schema';
+import { eq } from 'drizzle-orm';
+import { createBooking, decideBooking, getAvailability, type Actor } from '../src/booking/service';
+import { availabilityExceptions, bookings } from '../src/db/schema';
 import { AppError, type ErrorCode } from '../src/errors';
 import { db, H, makeService, makeUser, NOW, resetDb, THU_10, THU_11 } from './helpers';
 
@@ -15,17 +16,25 @@ async function expectCode(p: Promise<unknown>, code: ErrorCode) {
   throw new Error(`expected ${code}, but the call succeeded`);
 }
 
+const actor = (u: { id: string }, role: Actor['role']): Actor => ({ id: u.id, role });
 const book = (customerId: string, serviceId: string, startAt = THU_10, now = NOW) =>
   createBooking(db, { customerId, serviceId, startAt }, now);
+const statusOf = async (id: string) => (await db.select().from(bookings).where(eq(bookings.id, id)))[0]?.status;
 
 async function shop(capacity = 5) {
   const s = await makeService({ capacity });
+  const ownerActor = actor(s.owner, 'BUSINESS_OWNER');
   const pending = async (startAt = THU_10) => {
     const customer = await makeUser('CUSTOMER');
     const b = await book(customer.id, s.service.id, startAt);
-    return { id: b.id };
+    return { id: b.id, customer: actor(customer, 'CUSTOMER') };
   };
-  return { ...s, pending };
+  const confirmed = async (startAt = THU_10) => {
+    const p = await pending(startAt);
+    await decideBooking(db, ownerActor, p.id, 'APPROVE', undefined, NOW);
+    return p;
+  };
+  return { ...s, ownerActor, pending, confirmed };
 }
 
 beforeEach(resetDb);
@@ -109,6 +118,15 @@ describe('creating a booking', () => {
 });
 
 describe('capacity', () => {
+  test('a pending request holds capacity; rejecting it releases it', async () => {
+    const s = await shop(1);
+    const a = await s.pending();
+    const other = await makeUser('CUSTOMER');
+    await expectCode(book(other.id, s.service.id), 'CAPACITY_EXCEEDED');
+    await decideBooking(db, s.ownerActor, a.id, 'REJECT', 'Fully booked in the workshop', NOW);
+    expect((await book(other.id, s.service.id)).status).toBe('PENDING');
+  });
+
   test('an expired request stops holding capacity without any background job', async () => {
     const s = await shop(1);
     await s.pending();
@@ -119,10 +137,50 @@ describe('capacity', () => {
     expect((await book(other.id, s.service.id, THU_10, justAfter)).status).toBe('PENDING');
   });
 
+  test('a confirmed booking keeps holding capacity', async () => {
+    const s = await shop(1);
+    await s.confirmed();
+    const other = await makeUser('CUSTOMER');
+    await expectCode(book(other.id, s.service.id, THU_10, new Date(NOW.getTime() + 48 * H)), 'CAPACITY_EXCEEDED');
+  });
+
   test('capacity is per service: another slot of the same service is still free', async () => {
     const s = await shop(1);
     await s.pending(THU_10);
     const other = await makeUser('CUSTOMER');
     expect((await book(other.id, s.service.id, THU_11)).status).toBe('PENDING');
+  });
+});
+
+describe('approval and rejection', () => {
+  test('only the owner of the business can decide; the outcomes are exact', async () => {
+    const s = await shop();
+    const p = await s.pending();
+    const stranger = await makeUser('BUSINESS_OWNER');
+    await expectCode(decideBooking(db, actor(stranger, 'BUSINESS_OWNER'), p.id, 'APPROVE', undefined, NOW), 'FORBIDDEN');
+    await expectCode(decideBooking(db, p.customer, p.id, 'APPROVE', undefined, NOW), 'FORBIDDEN');
+    await expectCode(decideBooking(db, s.ownerActor, '00000000-0000-0000-0000-000000000000', 'APPROVE', undefined, NOW), 'NOT_FOUND');
+    expect(await statusOf(p.id)).toBe('PENDING');
+
+    const done = await decideBooking(db, s.ownerActor, p.id, 'APPROVE', undefined, NOW);
+    expect(done.status).toBe('CONFIRMED');
+    await expectCode(decideBooking(db, s.ownerActor, p.id, 'APPROVE', undefined, NOW), 'INVALID_BOOKING_STATUS');
+    await expectCode(decideBooking(db, s.ownerActor, p.id, 'REJECT', 'Too late', NOW), 'INVALID_BOOKING_STATUS');
+  });
+
+  test('rejecting needs a reason, and the reason is stored', async () => {
+    const s = await shop();
+    const p = await s.pending();
+    await expectCode(decideBooking(db, s.ownerActor, p.id, 'REJECT', '  ', NOW), 'VALIDATION_ERROR');
+    const rejected = await decideBooking(db, s.ownerActor, p.id, 'REJECT', 'Closed that day', NOW);
+    expect(rejected.status).toBe('REJECTED');
+    expect(rejected.statusReason).toBe('Closed that day');
+  });
+
+  test('a request cannot be approved after its deadline', async () => {
+    const s = await shop();
+    const p = await s.pending();
+    const late = new Date(NOW.getTime() + 24 * H);
+    await expectCode(decideBooking(db, s.ownerActor, p.id, 'APPROVE', undefined, late), 'BOOKING_EXPIRED');
   });
 });

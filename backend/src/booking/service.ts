@@ -1,4 +1,4 @@
-import { and, count, eq, gt, lt, or } from 'drizzle-orm';
+import { and, count, eq, gt, inArray, lt, or } from 'drizzle-orm';
 import type { PgDatabase } from 'drizzle-orm/pg-core';
 import type { PostgresJsQueryResultHKT } from 'drizzle-orm/postgres-js';
 import type { Db } from '../db/client';
@@ -6,9 +6,10 @@ import type * as schema from '../db/schema';
 import { availabilityExceptions, bookings, businesses, serviceSchedules, services, timeBlocks } from '../db/schema';
 import { AppError } from '../errors';
 import { maxOccupancy, type Occupant } from './occupancy';
-import { BOOKING_HORIZON_DAYS, HOUR, MAX_PENDING_PER_CUSTOMER, pendingExpiry } from './status';
+import { BOOKING_HORIZON_DAYS, effectiveStatus, HOUR, MAX_PENDING_PER_CUSTOMER, pendingExpiry } from './status';
 import { dayWindow, findSlot, localDateOf, slotsForDate, type Slot } from './time';
 
+export type Actor = { id: string; role: 'CUSTOMER' | 'BUSINESS_OWNER' | 'ADMIN' };
 type Q = PgDatabase<PostgresJsQueryResultHKT, typeof schema>;
 type BookingRow = typeof bookings.$inferSelect;
 
@@ -65,6 +66,16 @@ async function slotsFor(
       ),
     );
   return slotsForDate({ date, zone, durationMinutes: service.durationMinutes, schedules, exceptions });
+}
+
+async function loadBookingWithOwner(q: Q, bookingId: string) {
+  const [row] = await q
+    .select({ booking: bookings, ownerId: businesses.ownerId })
+    .from(bookings)
+    .innerJoin(services, eq(services.id, bookings.serviceId))
+    .innerJoin(businesses, eq(businesses.id, services.businessId))
+    .where(eq(bookings.id, bookingId));
+  return row;
 }
 
 export async function getAvailability(db: Db, serviceId: string, date: string, now = new Date()) {
@@ -158,4 +169,50 @@ export async function createBooking(
     if (!created) throw new AppError('INTERNAL_ERROR', 'Booking was not created');
     return created;
   });
+}
+
+export async function decideBooking(
+  db: Db,
+  actor: Actor,
+  bookingId: string,
+  decision: 'APPROVE' | 'REJECT',
+  reason: string | undefined,
+  now = new Date(),
+): Promise<BookingRow> {
+  if (actor.role !== 'BUSINESS_OWNER') throw new AppError('FORBIDDEN', 'Only the business owner can decide');
+  const trimmed = reason?.trim();
+  if (decision === 'REJECT' && !trimmed) {
+    throw new AppError('VALIDATION_ERROR', 'A reason is required to reject a booking');
+  }
+
+  const ownedServices = db
+    .select({ id: services.id })
+    .from(services)
+    .innerJoin(businesses, eq(businesses.id, services.businessId))
+    .where(eq(businesses.ownerId, actor.id));
+
+  const [updated] = await db
+    .update(bookings)
+    .set({
+      status: decision === 'APPROVE' ? 'CONFIRMED' : 'REJECTED',
+      statusReason: trimmed || null,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(bookings.id, bookingId),
+        eq(bookings.status, 'PENDING'),
+        gt(bookings.expiresAt, now),
+        inArray(bookings.serviceId, ownedServices),
+      ),
+    )
+    .returning();
+  if (updated) return updated;
+
+  const found = await loadBookingWithOwner(db, bookingId);
+  if (!found) throw new AppError('NOT_FOUND', 'Booking not found');
+  if (found.ownerId !== actor.id) throw new AppError('FORBIDDEN', 'This booking belongs to another business');
+  const status = effectiveStatus(found.booking, now);
+  if (status === 'EXPIRED') throw new AppError('BOOKING_EXPIRED', 'The approval deadline has passed');
+  throw new AppError('INVALID_BOOKING_STATUS', `A ${status} booking cannot be ${decision === 'APPROVE' ? 'approved' : 'rejected'}`);
 }
