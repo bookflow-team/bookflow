@@ -59,6 +59,7 @@ src/app.ts            the Elysia app (CORS, OpenAPI, error handling, routes)
 src/errors.ts         AppError and the error codes with their HTTP status
 src/http/             HTTP plumbing shared by all routes
 src/db/               schema (Drizzle tables), client, migration runner
+src/booking/          the booking engine: time zones and slots, capacity maths, status rules
 drizzle/              generated SQL migrations (committed)
 test/                 tests
 ```
