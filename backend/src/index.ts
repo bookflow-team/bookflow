@@ -1,9 +1,11 @@
 import { createApp } from './app';
 import { loadConfig } from './config';
+import { createDb } from './db/client';
 
 const config = loadConfig();
+const { db } = createDb(config.DATABASE_URL);
 
-createApp({ corsOrigin: config.CORS_ORIGIN }).listen({
+createApp({ db, corsOrigin: config.CORS_ORIGIN }).listen({
   hostname: config.BACKEND_HOST,
   port: config.BACKEND_PORT,
 });

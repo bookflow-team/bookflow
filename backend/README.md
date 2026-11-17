@@ -1,21 +1,28 @@
 # BookFlow backend
 
-Bun + ElysiaJS + Zod. The database layer is added in the following changes. Tests: Jest. API documentation: OpenAPI 3 (Scalar page).
+Bun + ElysiaJS + Zod + Drizzle ORM + PostgreSQL. Tests: Jest. API documentation: OpenAPI 3 (Scalar page).
 
 ## Run it
 
 ```bash
 bun install
-cp .env.example .env        # Bun loads .env automatically
+cp .env.example .env        # then edit DATABASE_URL (Bun loads .env automatically)
+bun run db:migrate          # applies ./drizzle/*.sql
 bun run dev                 # http://localhost:8000/health   and   /api/v1/openapi
 ```
+
+`GET /health` also runs `select 1`, so it fails when the database cannot be reached.
 
 ## Check it
 
 ```bash
+cp .env.test.example .env.test   # a SEPARATE database whose name contains "test"
+bun run db:migrate               # with DATABASE_URL pointing at that database
+bun run test                     # Jest, real database, test files run one after another
 bun run typecheck
-bun test
 ```
+
+The tests refuse to run against a database whose name does not contain `test`.
 
 ## API documentation (OpenAPI)
 
@@ -27,14 +34,21 @@ With the server running:
 The document is built from the routes. Describe every new route with `detail: { tags, summary, description }` and
 `response: { 200: ..., 4xx: errorResponse }` (see `GET /health` in `src/app.ts` and `src/http/openapi.ts`).
 
+## Database
+
+`DATABASE_URL` is validated at start-up. The SQL migrations live in `./drizzle`; `bun run db:migrate` applies
+the ones that are missing and is safe to run repeatedly. Until the first table exists (the next change) there is nothing to apply.
+
 ## Layout
 
 ```
-src/index.ts          start-up (config -> server)
+src/index.ts          start-up (config -> database -> server)
 src/config.ts         environment variables, validated once; a bad value stops the server at start
 src/app.ts            the Elysia app (CORS, OpenAPI, error handling, routes)
 src/errors.ts         AppError and the error codes with their HTTP status
 src/http/             HTTP plumbing shared by all routes
+src/db/               database client and migration runner
+drizzle/              generated SQL migrations (committed)
 test/                 tests
 ```
 
