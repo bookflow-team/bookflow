@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: PR checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out the proposed merge
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check the proposed diff
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: git diff --check "$BASE_SHA" HEAD
+
+      - name: Check which apps are present
+        id: apps
+        run: |
+          for app in frontend backend; do
+            if [[ -f "$app/package.json" ]]; then
+              echo "$app=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "::notice::$app has no package.json. Application checks are skipped."
+            fi
+          done
+
+      - name: Set up Node.js
+        if: steps.apps.outputs.frontend == 'true'
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Type-check and build frontend
+        if: steps.apps.outputs.frontend == 'true'
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run typecheck
+          npm run build
+
+      - name: Set up Bun
+        if: steps.apps.outputs.backend == 'true'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.x'
+
+      - name: Check backend tests
+        if: steps.apps.outputs.backend == 'true'
+        working-directory: backend
+        run: |
+          bun install --frozen-lockfile
+          if bun -e 'process.exit(require("./package.json").scripts?.test ? 0 : 1)'; then
+            bun run test
+          else
+            echo '::notice::Backend has no test script. Backend tests are skipped.'
+          fi
