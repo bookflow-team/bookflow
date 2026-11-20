@@ -93,4 +93,19 @@ describe('simultaneous requests', () => {
       }
     }
   });
+
+  test('one customer asking several services at once cannot go over 3 waiting requests', async () => {
+    const customer = await makeUser('CUSTOMER');
+    const shops = await Promise.all(Array.from({ length: 8 }, () => makeService({ capacity: 5 })));
+
+    const results = await Promise.allSettled(
+      shops.map((s) => createBooking(db, { customerId: customer.id, serviceId: s.service.id, startAt: THU_10 }, NOW)),
+    );
+
+    const won = results.filter((r) => r.status === 'fulfilled');
+    const lost = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
+    expect(won).toHaveLength(3);
+    expect(lost.every((r) => r.reason instanceof AppError && r.reason.code === 'TOO_MANY_PENDING')).toBe(true);
+    expect(await db.select().from(bookings).where(eq(bookings.customerId, customer.id))).toHaveLength(3);
+  });
 });
