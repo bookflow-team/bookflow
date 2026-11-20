@@ -1,112 +1,1026 @@
+
 @import "tailwindcss";
+
+/* =================================
+   BOOKFLOW — PREMIUM DARK THEME
+================================= */
+
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
-
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+  color: #eeeae2;
+  background: #111110;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
+  --bg: #111110;
+  --surface: #191917;
+  --surface-hover: #22221f;
+  --text: #eeeae2;
+  --muted: #a39e91;
+  --gold: #c6a66b;
+  --gold-light: #e1c48b;
+  --border: rgba(198, 166, 107, 0.2);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
-}
-
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
+* {
   box-sizing: border-box;
 }
 
+html {
+  min-width: 320px;
+  scroll-behavior: smooth;
+}
+
 body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
   margin: 0;
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+/* =================================
+   HEADER
+================================= */
+
+.site-header {
+  position: relative;
+  z-index: 5;
+  width: 100%;
+  min-height: 82px;
+  padding: 0 7%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  background: rgba(17, 17, 16, 0.96);
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
+.brand {
+  font-size: 25px;
+  font-weight: 800;
+  letter-spacing: 2px;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
+.brand span {
+  color: var(--gold);
+}
+
+.main-nav {
+  display: flex;
+  align-items: center;
+  gap: 38px;
+}
+
+.main-nav a {
+  color: var(--muted);
+  font-size: 14px;
+  transition: color 0.2s;
+}
+
+.main-nav a:hover {
+  color: var(--gold-light);
+}
+
+.login-button {
+  padding: 11px 25px;
+  color: var(--gold-light);
+  background: transparent;
+  border: 1px solid var(--gold);
+  border-radius: 3px;
+  transition: 0.2s;
+}
+
+.login-button:hover {
+  color: #111110;
+  background: var(--gold);
+}
+
+/* =================================
+   HOME PAGE — HERO
+================================= */
+
+.hero-section {
+  position: relative;
+  padding: 110px 24px 85px;
+  text-align: center;
+  background:
+    radial-gradient(
+      ellipse at 50% 0%,
+      rgba(198, 166, 107, 0.12),
+      transparent 65%
+    ),
+    var(--bg);
+}
+
+.hero-section h1 {
+  max-width: 850px;
+  margin: 25px auto;
+  color: var(--text);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(42px, 6vw, 76px);
+  font-weight: 400;
+  line-height: 1.08;
+  letter-spacing: -2px;
+}
+
+.hero-section p {
+  max-width: 650px;
+  margin: 0 auto;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+.hero-section > * {
+  position: relative;
+}
+
+.hero-section::before {
+  content: "ВАШЕ ВРЕМЯ. ВАШ ВЫБОР.";
+  display: block;
+  color: var(--gold);
+  font-size: 11px;
+  letter-spacing: 4px;
+}
+
+/* SEARCH */
+
+.search-panel {
+  width: min(680px, 100%);
+  margin: 42px auto 0;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 4px;
-  color: var(--text-h);
 }
 
-code {
+.search-panel input {
+  flex: 1;
+  min-width: 0;
+  padding: 15px;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  outline: none;
+}
+
+.search-panel input::placeholder {
+  color: #77736b;
+}
+
+.search-panel button {
+  padding: 14px 27px;
+  color: #171510;
+  background: var(--gold);
+  border: none;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.search-panel button:hover {
+  background: var(--gold-light);
+}
+
+.hero-meta {
+  margin-top: 38px;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 35px;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+}
+
+/* =================================
+   HOME PAGE — CATALOG
+================================= */
+
+.catalog-section {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 75px 6%;
+}
+
+.catalog-section h2 {
+  margin: 10px 0;
+  color: var(--text);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(30px, 4vw, 42px);
+  font-weight: 400;
+}
+
+.catalog-section > p {
+  color: var(--muted);
+}
+
+.catalog-section > h2::before {
+  content: "ПОДБОРКА BOOKFLOW";
+  display: block;
+  margin-bottom: 15px;
+  color: var(--gold);
+  font-family: Inter, sans-serif;
+  font-size: 11px;
+  letter-spacing: 3px;
+}
+
+/* CATEGORIES */
+
+.category-list {
+  margin: 30px 0 35px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.category-list button {
+  padding: 10px 20px;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  transition: 0.2s;
+}
+
+.category-list button:hover,
+.category-list button.active {
+  color: #171510;
+  background: var(--gold);
+  border-color: var(--gold);
+}
+
+/* BUSINESS CARDS */
+
+.business-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 26px;
+}
+
+.business-card {
+  min-width: 0;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  transition:
+    transform 0.25s,
+    border-color 0.25s;
+}
+
+.business-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--gold);
+}
+
+.business-image {
+  position: relative;
+  width: 100%;
+  height: 280px;
+  overflow: hidden;
+  background: #24231f;
+}
+
+.business-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s;
+}
+
+.business-card:hover .business-image img {
+  transform: scale(1.04);
+}
+
+.business-info {
+  padding: 25px 27px 28px;
+}
+
+.business-info h3 {
+  margin: 10px 0;
+  color: var(--text);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 25px;
+  font-weight: 400;
+}
+
+.business-info p {
+  margin: 10px 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.business-info a {
+  display: inline-block;
+  margin-top: 12px;
+  color: var(--gold-light);
+  font-size: 13px;
+  letter-spacing: 0.5px;
+}
+
+.business-info a:hover {
+  color: #fff;
+}
+
+.empty-state {
+  padding: 60px 20px;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* =================================
+   ABOUT & FOOTER
+================================= */
+
+.about-section {
+  padding: 85px 24px;
+  text-align: center;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.about-section h2 {
+  margin-bottom: 20px;
+  color: var(--text);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 38px;
+  font-weight: 400;
+}
+
+.about-section p {
+  max-width: 600px;
+  margin: 0 auto;
+  color: var(--muted);
+  line-height: 1.8;
+}
+
+.site-footer {
+  padding: 35px 7%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.site-footer .brand {
+  color: var(--text);
+  font-size: 20px;
+}
+
+/* =================================
+   BUSINESS PAGE
+================================= */
+
+.business-page {
+  min-height: calc(100vh - 82px);
+  background:
+    radial-gradient(
+      ellipse at 80% 5%,
+      rgba(198, 166, 107, 0.07),
+      transparent 35%
+    ),
+    var(--bg);
+}
+
+.business-page-container {
+  width: min(1200px, 90%);
+  margin: 0 auto;
+  padding: 38px 0 0;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 35px;
+  color: var(--muted);
+  font-size: 13px;
+  transition: color 0.2s;
+}
+
+.back-link:hover {
+  color: var(--gold-light);
+}
+
+.back-link span {
+  color: var(--gold);
+  font-size: 20px;
+}
+
+/* BUSINESS HERO */
+
+.business-hero {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  min-height: 430px;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+}
+
+.business-hero-image {
+  position: relative;
+  min-height: 430px;
+  overflow: hidden;
+  background: #24231f;
+}
+
+.business-hero-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 430px;
+  object-fit: cover;
+}
+
+.business-image-label {
+  position: absolute;
+  left: 25px;
+  bottom: 25px;
+  padding: 9px 13px;
+  color: var(--gold-light);
+  background: rgba(17, 17, 16, 0.85);
+  border: 1px solid var(--border);
+  font-size: 9px;
+  letter-spacing: 2px;
+}
+
+.business-hero-info {
+  padding: 55px 45px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.business-category {
+  color: var(--gold);
+  font-size: 11px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+}
+
+.business-hero-info h1 {
+  margin: 18px 0;
+  color: var(--text);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(34px, 4vw, 52px);
+  font-weight: 400;
+  line-height: 1.12;
+}
+
+.business-rating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.business-rating strong {
+  color: var(--text);
   font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+}
+
+.rating-star {
+  color: var(--gold);
+  font-size: 19px;
+}
+
+.business-address {
+  margin-top: 28px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.info-icon {
+  color: var(--gold);
+  font-size: 21px;
+}
+
+.business-description {
+  max-width: 430px;
+  margin-top: 22px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.9;
+}
+
+.business-cta {
+  margin-top: 32px;
+  padding: 14px 23px;
+  display: inline-flex;
+  align-items: center;
+  gap: 20px;
+  color: #171510;
+  background: var(--gold);
+  border: 1px solid var(--gold);
+  border-radius: 3px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: 0.2s;
+}
+
+.business-cta:hover {
+  background: var(--gold-light);
+  border-color: var(--gold-light);
+}
+
+.business-cta span {
+  font-size: 17px;
+}
+
+/* =================================
+   SERVICES
+================================= */
+
+.services-section {
+  padding: 85px 0 95px;
+}
+
+.services-heading {
+  margin-bottom: 35px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.section-eyebrow {
+  color: var(--gold);
+  font-size: 10px;
+  letter-spacing: 3px;
+}
+
+.services-heading h2 {
+  margin: 13px 0 10px;
+  color: var(--text);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(30px, 4vw, 42px);
+  font-weight: 400;
+}
+
+.services-heading p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.services-count {
+  padding: 10px 14px;
+  color: var(--gold-light);
+  border: 1px solid var(--border);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  white-space: nowrap;
+}
+
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.service-card {
+  min-width: 0;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  transition:
+    transform 0.2s,
+    border-color 0.2s;
+}
+
+.service-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--gold);
+}
+
+.service-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.service-label {
+  color: var(--gold);
+  font-size: 9px;
+  letter-spacing: 2px;
+}
+
+.service-duration {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.service-card h3 {
+  margin: 25px 0 10px;
+  color: var(--text);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 24px;
+  font-weight: 400;
+}
+
+.service-description {
+  min-height: 48px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.service-card-bottom {
+  margin-top: 28px;
+  padding-top: 20px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 15px;
+  border-top: 1px solid var(--border);
+}
+
+.service-price {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.service-price span {
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: 1.5px;
+}
+
+.service-price strong {
+  color: var(--gold-light);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 25px;
+  font-weight: 400;
+}
+
+.service-book-button {
+  padding: 11px 16px;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-size: 11px;
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+.service-book-button:disabled {
+  cursor: not-allowed;
+}
+
+.services-empty {
+  padding: 65px 20px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.services-empty > span {
+  color: var(--gold);
+  font-size: 30px;
+}
+
+.services-empty h3 {
+  margin: 15px 0 10px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 24px;
+  font-weight: 400;
+}
+
+.services-empty p {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* BUSINESS BOTTOM */
+
+.business-bottom {
+  padding: 35px 0 45px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.business-bottom > span {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+
+.business-bottom p {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.business-bottom a {
+  color: var(--gold-light);
+  font-size: 12px;
+}
+
+.business-bottom a:hover {
+  color: white;
+}
+
+/* NOT FOUND */
+
+.business-not-found {
+  min-height: 75vh;
+  padding: 100px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background:
+    radial-gradient(
+      ellipse at 50% 20%,
+      rgba(198, 166, 107, 0.1),
+      transparent 60%
+    ),
+    var(--bg);
+}
+
+.business-not-found h1 {
+  margin: 20px 0 12px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(32px, 5vw, 48px);
+  font-weight: 400;
+}
+
+.business-not-found p {
+  max-width: 500px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.back-home-button {
+  margin-top: 25px;
+  padding: 14px 22px;
+  color: #171510;
+  background: var(--gold);
+  border-radius: 3px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.back-home-button:hover {
+  background: var(--gold-light);
+}
+
+/* =================================
+   RESPONSIVE — TABLET
+================================= */
+
+@media (max-width: 900px) {
+  .business-hero {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .business-hero-info {
+    padding: 35px 25px;
+  }
+
+  .business-hero-image,
+  .business-hero-image img {
+    min-height: 380px;
+  }
+
+  .services-grid {
+    gap: 14px;
+  }
+
+  .service-card {
+    padding: 22px;
+  }
+}
+
+/* =================================
+   RESPONSIVE — MOBILE
+================================= */
+
+@media (max-width: 760px) {
+  .site-header {
+    min-height: 70px;
+    padding: 15px 5%;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+
+  .brand {
+    font-size: 21px;
+  }
+
+  .main-nav {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+    gap: 25px;
+  }
+
+  .login-button {
+    padding: 9px 16px;
+  }
+
+  .hero-section {
+    padding: 75px 20px 60px;
+  }
+
+  .hero-section h1 {
+    font-size: 43px;
+    letter-spacing: -1px;
+  }
+
+  .hero-meta {
+    gap: 15px;
+    font-size: 9px;
+  }
+
+  .catalog-section {
+    padding: 55px 5%;
+  }
+
+  .business-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .business-image {
+    height: 250px;
+  }
+
+  .category-list {
+    gap: 8px;
+  }
+
+  .category-list button {
+    padding: 9px 13px;
+    font-size: 12px;
+  }
+
+  .search-panel {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-panel button {
+    width: 100%;
+  }
+
+  .about-section {
+    padding: 60px 20px;
+  }
+
+  .site-footer {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  /* BUSINESS PAGE MOBILE */
+
+  .business-page-container {
+    width: 90%;
+    padding-top: 25px;
+  }
+
+  .back-link {
+    margin-bottom: 22px;
+  }
+
+  .business-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .business-hero-image,
+  .business-hero-image img {
+    min-height: 260px;
+    height: 260px;
+  }
+
+  .business-hero-info {
+    padding: 30px 24px;
+  }
+
+  .business-hero-info h1 {
+    font-size: 38px;
+  }
+
+  .business-description {
+    margin-top: 15px;
+  }
+
+  .business-cta {
+    margin-top: 22px;
+  }
+
+  .services-section {
+    padding: 60px 0;
+  }
+
+  .services-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .services-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .service-card {
+    padding: 23px;
+  }
+
+  .business-bottom {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+/* SMALL MOBILE */
+
+@media (max-width: 380px) {
+  .hero-section h1 {
+    font-size: 35px;
+  }
+
+  .business-image {
+    height: 210px;
+  }
+
+  .business-hero-info h1 {
+    font-size: 32px;
+  }
+
+  .service-card-bottom {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .service-book-button {
+    width: 100%;
+  }
+}
+
+/* ACCESSIBILITY */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
