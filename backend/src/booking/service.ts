@@ -1,4 +1,4 @@
-import { and, count, eq, gt, inArray, lt, or } from 'drizzle-orm';
+import { and, count, eq, gt, inArray, lt, or, sql } from 'drizzle-orm';
 import type { PgDatabase } from 'drizzle-orm/pg-core';
 import type { PostgresJsQueryResultHKT } from 'drizzle-orm/postgres-js';
 import type { Db } from '../db/client';
@@ -107,6 +107,10 @@ async function lockOwnedService(q: Q, actor: Actor, serviceId: string) {
   return { service, business };
 }
 
+async function lockCustomerRequests(q: Q, customerId: string) {
+  await q.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`pending-requests:${customerId}`}, 0))`);
+}
+
 async function assertUnderPendingLimit(q: Q, customerId: string, now: Date) {
   const [pending] = await q
     .select({ n: count() })
@@ -159,6 +163,7 @@ export async function createBooking(
   now = new Date(),
 ): Promise<BookingRow> {
   return db.transaction(async (tx) => {
+    await lockCustomerRequests(tx, input.customerId);
     const [service] = await tx.select().from(services).where(eq(services.id, input.serviceId)).for('update');
     if (!service) throw new AppError('NOT_FOUND', 'Service not found');
     const [business] = await tx.select().from(businesses).where(eq(businesses.id, service.businessId));
