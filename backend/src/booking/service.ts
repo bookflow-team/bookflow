@@ -107,6 +107,22 @@ async function lockOwnedService(q: Q, actor: Actor, serviceId: string) {
   return { service, business };
 }
 
+async function assertUnderPendingLimit(q: Q, customerId: string, now: Date) {
+  const [pending] = await q
+    .select({ n: count() })
+    .from(bookings)
+    .where(
+      and(
+        eq(bookings.customerId, customerId),
+        eq(bookings.status, 'PENDING'),
+        gt(bookings.expiresAt, now),
+      ),
+    );
+  if ((pending?.n ?? 0) >= MAX_PENDING_PER_CUSTOMER) {
+    throw new AppError('TOO_MANY_PENDING', `At most ${MAX_PENDING_PER_CUSTOMER} requests can wait for approval`);
+  }
+}
+
 export async function getAvailability(db: Db, serviceId: string, date: string, now = new Date()) {
   const [row] = await db
     .select({ service: services, business: businesses })
@@ -162,19 +178,7 @@ export async function createBooking(
     const slots = await slotsFor(tx, service, business.timezone, localDateOf(start, business.timezone));
     if (!findSlot(slots, start)) throw new AppError('INVALID_SLOT', 'The requested time is not an available slot');
 
-    const [pending] = await tx
-      .select({ n: count() })
-      .from(bookings)
-      .where(
-        and(
-          eq(bookings.customerId, input.customerId),
-          eq(bookings.status, 'PENDING'),
-          gt(bookings.expiresAt, now),
-        ),
-      );
-    if ((pending?.n ?? 0) >= MAX_PENDING_PER_CUSTOMER) {
-      throw new AppError('TOO_MANY_PENDING', `At most ${MAX_PENDING_PER_CUSTOMER} requests can wait for approval`);
-    }
+    await assertUnderPendingLimit(tx, input.customerId, now);
 
     const occupants = await loadOccupants(tx, service.id, start, end, now);
     if (maxOccupancy(start.getTime(), end.getTime(), occupants) >= service.capacity) {
