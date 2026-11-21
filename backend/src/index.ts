@@ -10,6 +10,7 @@ createApp({
   corsOrigin: config.CORS_ORIGIN,
   sessionTtlDays: config.SESSION_TTL_DAYS,
   cookieSecure: config.COOKIE_SECURE,
+  trustProxy: config.TRUST_PROXY,
 }).listen({
   hostname: config.BACKEND_HOST,
   port: config.BACKEND_PORT,

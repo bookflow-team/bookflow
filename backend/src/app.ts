@@ -3,12 +3,20 @@ import { openapi } from '@elysiajs/openapi';
 import { sql } from 'drizzle-orm';
 import { Elysia } from 'elysia';
 import { z } from 'zod';
+import type { AuthLimits } from './auth/limits';
 import { authRoutes } from './auth/routes';
 import type { Db } from './db/client';
 import { errorHandler } from './http/error-handler';
 import { documentation, errorResponse, healthResponse } from './http/openapi';
 
-export function createApp(deps: { db: Db; corsOrigin: string; sessionTtlDays?: number; cookieSecure?: boolean }) {
+export function createApp(deps: {
+  db: Db;
+  corsOrigin: string;
+  sessionTtlDays?: number;
+  cookieSecure?: boolean;
+  trustProxy?: boolean;
+  authLimits?: Partial<AuthLimits>;
+}) {
   const health = async () => {
     await deps.db.execute(sql`select 1`);
     return { data: { status: 'ok' as const } };
@@ -31,6 +39,8 @@ export function createApp(deps: { db: Db; corsOrigin: string; sessionTtlDays?: n
         db: deps.db,
         sessionTtlMs: (deps.sessionTtlDays ?? 14) * 24 * 3_600_000,
         cookieSecure: deps.cookieSecure ?? false,
+        trustProxy: deps.trustProxy ?? false,
+        limits: deps.authLimits ?? {},
       }),
     );
 

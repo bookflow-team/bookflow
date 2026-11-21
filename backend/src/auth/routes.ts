@@ -5,8 +5,11 @@ import type { Db } from '../db/client';
 import { isUniqueViolation } from '../db/errors';
 import { users } from '../db/schema';
 import { AppError } from '../errors';
+import { clientIp } from '../http/client-ip';
 import { errorDoc, jsonResponse, noContentDoc } from '../http/openapi';
 import { sessionUser } from '../http/session-user';
+import { takeFromAll } from './attempt-limiter';
+import { createAuthLimiters, type AuthLimits } from './limits';
 import { burnPasswordCheck, hashPassword, needsRehash, verifyPassword } from './password';
 import { clearedSessionCookie, createSession, deleteSession, sessionCookie, sessionUserColumns } from './session';
 
@@ -71,14 +74,37 @@ const validationFailed = errorDoc(
   { details: { on: 'body', issues: [{ path: ['password'], message: 'Too small: expected string to have >=8 characters' }] } },
 );
 
+const tooManyAttemptsDoc = errorDoc(
+  'Too many attempts from this address. Wait `Retry-After` seconds: even the right password is refused while the block lasts.',
+  'TOO_MANY_ATTEMPTS',
+  'Too many attempts, try again later',
+  {
+    details: { retryAfterSeconds: 900 },
+    headers: { 'Retry-After': { description: 'Seconds to wait before trying again.', schema: { type: 'string' as const }, example: '900' } },
+  },
+);
+
 const notLoggedIn = errorDoc(
   'There is no valid session cookie: the visitor never logged in, logged out, or the session expired.',
   'UNAUTHENTICATED',
   'You are not logged in',
 );
 
-export function authRoutes(deps: { db: Db; sessionTtlMs: number; cookieSecure: boolean }) {
+function tooManyAttempts(retryAfterSeconds: number) {
+  return new AppError('TOO_MANY_ATTEMPTS', 'Too many attempts, try again later', { retryAfterSeconds });
+}
+
+export function authRoutes(deps: {
+  db: Db;
+  sessionTtlMs: number;
+  cookieSecure: boolean;
+  trustProxy?: boolean;
+  limits?: Partial<AuthLimits>;
+}) {
   const { db } = deps;
+  const limiters = createAuthLimiters(deps.limits);
+  const addressOf = (request: Request, server: Parameters<typeof clientIp>[1]) =>
+    clientIp(request, server, deps.trustProxy ?? false);
 
   return new Elysia({ prefix: '/auth' })
     .use(sessionUser(db))
@@ -134,8 +160,16 @@ export function authRoutes(deps: { db: Db; sessionTtlMs: number; cookieSecure: b
     )
     .post(
       '/login',
-      async ({ body, set }) => {
+      async ({ body, set, request, server }) => {
         const email = body.email.trim().toLowerCase();
+        const address = addressOf(request, server);
+        const accountKey = `${address}|${email}`;
+        const wait = takeFromAll([
+          [limiters.loginPerAccount, accountKey],
+          [limiters.loginPerAddress, address],
+        ]);
+        if (wait > 0) throw tooManyAttempts(wait);
+
         const [row] = await db
           .select({ ...sessionUserColumns, passwordHash: users.passwordHash })
           .from(users)
@@ -144,6 +178,8 @@ export function authRoutes(deps: { db: Db; sessionTtlMs: number; cookieSecure: b
         if (row) valid = await verifyPassword(body.password, row.passwordHash);
         else await burnPasswordCheck(body.password);
         if (!row || !valid) throw new AppError('UNAUTHENTICATED', 'Wrong e-mail or password');
+        limiters.loginPerAccount.clear(accountKey);
+        limiters.loginPerAddress.refund(address);
 
         if (needsRehash(row.passwordHash)) {
           await db
@@ -165,7 +201,7 @@ export function authRoutes(deps: { db: Db; sessionTtlMs: number; cookieSecure: b
           tags: ['Auth'],
           summary: 'Log in',
           description:
-            'Public. Checks the e-mail (letter case does not matter) and the password and sets the `bookflow_session` cookie, see the `Set-Cookie` header of the 200 answer. A wrong password and an unknown e-mail give exactly the same 401 on purpose.',
+            'Public. Checks the e-mail (letter case does not matter) and the password and sets the `bookflow_session` cookie, see the `Set-Cookie` header of the 200 answer. A wrong password and an unknown e-mail give exactly the same 401 on purpose. After 5 wrong passwords for the same e-mail from the same address (or 30 from one address) in 15 minutes, further attempts get 429 with a `Retry-After` header until the window is over.',
           security: [],
           responses: {
             200: jsonResponse({
@@ -176,6 +212,7 @@ export function authRoutes(deps: { db: Db; sessionTtlMs: number; cookieSecure: b
             }),
             401: errorDoc('The e-mail or the password is wrong.', 'UNAUTHENTICATED', 'Wrong e-mail or password'),
             422: validationFailed,
+            429: tooManyAttemptsDoc,
           },
         },
       },
