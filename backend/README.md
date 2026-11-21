@@ -14,7 +14,7 @@ bun run dev                 # http://localhost:8000/health   and   /api/v1/opena
 
 ```bash
 bun run typecheck
-bun test
+bun run test
 ```
 
 ## API documentation (OpenAPI)
