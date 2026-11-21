@@ -27,7 +27,10 @@ export const documentation = {
       'Authentication uses an HTTP-only session cookie (added together with the auth routes).',
     ].join('\n'),
   },
-  tags: [{ name: 'System', description: 'Health and diagnostics' }],
+  tags: [
+    { name: 'System', description: 'Health and diagnostics' },
+    { name: 'Auth', description: 'Registration, login and the current session' },
+  ],
   components: {
     securitySchemes: {
       sessionCookie: { type: 'apiKey' as const, in: 'cookie' as const, name: 'bookflow_session', description: 'Set by POST /auth/login' },
