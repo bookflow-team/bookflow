@@ -7,6 +7,7 @@ import { adminBusinessRoutes } from './admin/business-routes';
 import type { AuthLimits } from './auth/limits';
 import { authRoutes } from './auth/routes';
 import { ownerBusinessRoutes } from './business/routes';
+import { ownerServiceRoutes } from './services/routes';
 import type { Db } from './db/client';
 import { errorHandler } from './http/error-handler';
 import { originGuard } from './http/guards';
@@ -40,6 +41,7 @@ export function createApp(deps: {
     .get('/health', health, healthDocs)
     .use(ownerBusinessRoutes({ db: deps.db }))
     .use(adminBusinessRoutes({ db: deps.db }))
+    .use(ownerServiceRoutes({ db: deps.db }))
     .use(
       authRoutes({
         db: deps.db,
