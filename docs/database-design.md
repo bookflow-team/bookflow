@@ -344,3 +344,39 @@ The backend developer will translate it into Drizzle ORM schemas and PostgreSQL 
 Minor implementation changes are allowed if they preserve the approved business requirements.
 
 Any change affecting API contracts, booking capacity, user permissions, or reservation states must be discussed with the team before implementation.
+
+## 11. Differences in the implemented schema
+
+The schema in `backend/src/db/schema.ts` and the first migration (`backend/drizzle/0000_init.sql`) follow this document, with the changes below. They are listed here so they can be reviewed together with the pull request that adds the schema.
+
+### 11.1 Added to the design
+
+| Area | Change | Why |
+|---|---|---|
+| New table `sessions` | `id` (TEXT, the SHA-256 of the cookie token, never the token itself), `user_id` (FK to users, deleted with the user), `expires_at`, `created_at`; indexes on `user_id` and `expires_at` | The API contract asks for cookie sessions, and a session has to be stored somewhere to be ended on logout |
+| `users` | `name` (TEXT, not empty) and `phone` (TEXT, optional) | Owners need to know who booked; the design only had the e-mail |
+| `bookings` | `price_at_booking` (NUMERIC(10,2), not null) | A later price change must not change an old booking |
+| `bookings` | `status_reason` (TEXT, optional) and `cancelled_by` (user role, optional) | Rejection and cancellation take a reason, and it needs a place to be stored |
+| `services` | `created_at` and `updated_at` | Auditing of changes |
+| `availability_exceptions`, `time_blocks` | `created_at` on both (time_blocks already had it) | Consistency |
+
+### 11.2 Stricter or different than written
+
+| Area | Design | Implemented | Why |
+|---|---|---|---|
+| Roles, statuses, types | VARCHAR columns | PostgreSQL enums (`user_role`, `approval_status`, `booking_status`, `exception_type`, `block_reason`, `admin_action_type`, `admin_target_type`) | The database itself refuses unknown values |
+| Text columns | VARCHAR(n) | TEXT | Lengths are validated by the API; there is no performance reason for VARCHAR in PostgreSQL |
+| `users.email` | unique | unique and must be lower case (CHECK) | One account per address regardless of letter case |
+| Names | not null | not null and not empty after trimming (users, businesses, services) | Blank names are never valid |
+| `services.duration_minutes` | greater than 0 | between 1 and 1440 | A slot never crosses midnight |
+| `bookings.expires_at` | not null | not null and never later than `start_at` (CHECK) | The deadline is the earlier of 24 hours and the start |
+| `bookings` occupancy index | `(service_id, start_at, end_at)` | the same index, partial: only `PENDING` and `CONFIRMED` rows | Capacity checks only read bookings that hold a place |
+| `admin_actions` | free text `action_type` and `target_type` | enums, and `reason` must not be empty | Audit rows stay consistent |
+| Foreign keys | not specified | children of a service (schedules, exceptions, blocks) and sessions are deleted with their parent; users, businesses, services and bookings are never deleted by cascade | Booking history must survive; services are deactivated, not deleted |
+| Timestamps | TIMESTAMPTZ | TIMESTAMPTZ everywhere, ids are `uuid` with a database default | Same as the design, listed for completeness |
+
+### 11.3 Not enforced by the database
+
+- Capacity is not enforced by a constraint. It is enforced by the booking transaction that locks the service row (section 5), which arrives in a later pull request. There is no database-level guard against overbooking.
+- `EXPIRED` and `COMPLETED` exist as enum values, but the backend derives them when a booking is read (a pending booking past `expires_at`, a confirmed booking past `end_at`), so no background job has to update them.
+- The business time zone is stored as text. It is validated as an IANA name by the API, not by the database.

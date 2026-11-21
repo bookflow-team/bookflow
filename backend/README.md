@@ -27,7 +27,7 @@ bun run typecheck
 
 `bun run db:migrate` reads `.env`, which is your development database. `bun run db:migrate:test` and `bun run test` both read `.env.test`, and what is written there wins over any `DATABASE_URL` you exported in your shell, so the migrations and the tests always use the same `bookflow_test` database. If there is no `.env.test` (as in CI), the `DATABASE_URL` from the environment is used. `bun run db:migrate:test` also refuses, before it connects, any database whose name does not contain `test`, so it can never migrate your development database by accident.
 
-The tests refuse to run against a database whose name does not contain `test`.
+The tests refuse to run against a database whose name does not contain `test`. From this change on they also delete every row from every table before each test, so `.env.test` must only ever point at a throwaway database.
 
 ## API documentation (OpenAPI)
 
@@ -42,7 +42,18 @@ The document is built from the routes. Describe every new route with `detail: { 
 ## Database
 
 `DATABASE_URL` is validated at start-up. The SQL migrations live in `./drizzle`; `bun run db:migrate` applies
-the ones that are missing and is safe to run repeatedly. Until the first table exists (the next change) there is nothing to apply.
+the ones that are missing and is safe to run repeatedly.
+
+### Change the schema
+
+Edit `src/db/schema.ts`, then:
+
+```bash
+bun run db:generate --name short_description   # writes a new SQL file into ./drizzle
+bun run db:migrate
+```
+
+Commit the generated SQL. Never edit an SQL file that is already merged.
 
 ## Layout
 
@@ -52,7 +63,7 @@ src/config.ts         environment variables, validated once; a bad value stops t
 src/app.ts            the Elysia app (CORS, OpenAPI, error handling, routes)
 src/errors.ts         AppError and the error codes with their HTTP status
 src/http/             HTTP plumbing shared by all routes
-src/db/               database client and migration runner
+src/db/               schema (Drizzle tables), client, migration runner
 drizzle/              generated SQL migrations (committed)
 test/                 tests
 ```
