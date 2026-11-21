@@ -9,7 +9,16 @@ import { db, H, resetDb } from './helpers';
 
 type Body = { data?: Record<string, unknown>; error?: { code: string } };
 
-const app = createApp({ db, corsOrigin: 'http://localhost:5173' });
+const hour = 3_600_000;
+const app = createApp({
+  db,
+  corsOrigin: 'http://localhost:5173',
+  authLimits: {
+    loginPerAccount: { max: 1000, windowMs: hour },
+    loginPerAddress: { max: 1000, windowMs: hour },
+    registerPerAddress: { max: 1000, windowMs: hour },
+  },
+});
 
 function send(method: string, path: string, body?: unknown, cookie?: string) {
   return app.handle(
