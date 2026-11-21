@@ -110,7 +110,10 @@ export function authRoutes(deps: {
     .use(sessionUser(db))
     .post(
       '/register',
-      async ({ body, set }) => {
+      async ({ body, set, request, server }) => {
+        const wait = limiters.registerPerAddress.take(addressOf(request, server));
+        if (wait > 0) throw tooManyAttempts(wait);
+
         const email = body.email.trim().toLowerCase();
         const passwordHash = await hashPassword(body.password);
         try {
@@ -140,7 +143,7 @@ export function authRoutes(deps: {
           tags: ['Auth'],
           summary: 'Register',
           description:
-            'Public. Creates a `CUSTOMER` or `BUSINESS_OWNER` account. Administrators cannot register here. The password needs 8 to 128 characters, `name` and `phone` are optional and the name defaults to the part of the e-mail before the @. E-mails are stored in lower case. The visitor is **not** logged in afterwards: call `POST /auth/login` next.',
+            'Public. Creates a `CUSTOMER` or `BUSINESS_OWNER` account. Administrators cannot register here. The password needs 8 to 128 characters, `name` and `phone` are optional and the name defaults to the part of the e-mail before the @. E-mails are stored in lower case. The visitor is **not** logged in afterwards: call `POST /auth/login` next. One address can send 20 registrations per hour, after that it gets 429 with a `Retry-After` header.',
           security: [],
           responses: {
             201: jsonResponse({
@@ -154,6 +157,7 @@ export function authRoutes(deps: {
               'An account with this e-mail already exists',
             ),
             422: validationFailed,
+            429: tooManyAttemptsDoc,
           },
         },
       },
