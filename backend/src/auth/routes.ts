@@ -6,6 +6,7 @@ import { isUniqueViolation } from '../db/errors';
 import { users } from '../db/schema';
 import { AppError } from '../errors';
 import { clientIp } from '../http/client-ip';
+import { requireUser } from '../http/guards';
 import { errorDoc, jsonResponse, noContentDoc } from '../http/openapi';
 import { sessionUser } from '../http/session-user';
 import { takeFromAll } from './attempt-limiter';
@@ -224,8 +225,8 @@ export function authRoutes(deps: {
     .post(
       '/logout',
       async ({ user, sessionToken }) => {
-        if (!user || !sessionToken) throw new AppError('UNAUTHENTICATED', 'You are not logged in');
-        await deleteSession(db, sessionToken);
+        requireUser(user);
+        if (sessionToken) await deleteSession(db, sessionToken);
         return new Response(null, { status: 204, headers: { 'set-cookie': clearedSessionCookie(deps.cookieSecure) } });
       },
       {
@@ -243,10 +244,7 @@ export function authRoutes(deps: {
     )
     .get(
       '/me',
-      ({ user }) => {
-        if (!user) throw new AppError('UNAUTHENTICATED', 'You are not logged in');
-        return { data: user };
-      },
+      ({ user }) => ({ data: requireUser(user) }),
       {
         detail: {
           tags: ['Auth'],
