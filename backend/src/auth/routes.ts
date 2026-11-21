@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { Elysia } from 'elysia';
 import { z } from 'zod';
 import type { Db } from '../db/client';
@@ -7,7 +7,7 @@ import { users } from '../db/schema';
 import { AppError } from '../errors';
 import { errorResponse } from '../http/openapi';
 import { sessionUser } from '../http/session-user';
-import { burnPasswordCheck, hashPassword, verifyPassword } from './password';
+import { burnPasswordCheck, hashPassword, needsRehash, verifyPassword } from './password';
 import { clearedSessionCookie, createSession, deleteSession, sessionCookie, sessionUserColumns } from './session';
 
 const registerBody = z.object({
@@ -89,6 +89,13 @@ export function authRoutes(deps: { db: Db; sessionTtlMs: number; cookieSecure: b
         if (row) valid = await verifyPassword(body.password, row.passwordHash);
         else await burnPasswordCheck(body.password);
         if (!row || !valid) throw new AppError('UNAUTHENTICATED', 'Wrong e-mail or password');
+
+        if (needsRehash(row.passwordHash)) {
+          await db
+            .update(users)
+            .set({ passwordHash: await hashPassword(body.password) })
+            .where(and(eq(users.id, row.id), eq(users.passwordHash, row.passwordHash)));
+        }
 
         const token = await createSession(db, row.id, deps.sessionTtlMs);
         set.headers['set-cookie'] = sessionCookie(token, {
