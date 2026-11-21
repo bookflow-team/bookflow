@@ -12,7 +12,7 @@ export function createApp(deps: { corsOrigin: string }) {
     detail: {
       tags: ['System'],
       summary: 'Health check',
-      description: 'Runs `select 1` on the database, so it fails when the database cannot be reached.',
+      description: 'Returns ok while the server is running.',
     },
     response: { 200: healthResponse, 500: errorResponse },
   };
