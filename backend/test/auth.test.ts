@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, test } from '@jest/globals';
+import { hash } from '@node-rs/argon2';
 import { eq } from 'drizzle-orm';
 import { createApp } from '../src/app';
+import { needsRehash, verifyPassword } from '../src/auth/password';
 import { hashSessionToken } from '../src/auth/session';
 import { sessions, users } from '../src/db/schema';
 import { db, H, resetDb } from './helpers';
@@ -114,6 +116,29 @@ describe('login, current user and logout', () => {
     expect(unknownEmail.status).toBe(401);
     expect(await wrongPassword.json()).toEqual(await unknownEmail.json());
     expect(wrongPassword.headers.get('set-cookie')).toBeNull();
+  });
+
+  test('a hash made with weaker settings is replaced by a current one after a good login', async () => {
+    const weak = await hash(anna.password, { memoryCost: 8, timeCost: 1, algorithm: 2 });
+    await db.update(users).set({ passwordHash: weak });
+    expect(needsRehash(weak)).toBe(true);
+
+    const res = await send('POST', '/auth/login', { email: anna.email, password: anna.password });
+    expect(res.status).toBe(200);
+
+    const [row] = await db.select().from(users);
+    expect(row?.passwordHash).not.toBe(weak);
+    expect(needsRehash(row?.passwordHash ?? '')).toBe(false);
+    expect(await verifyPassword(anna.password, row?.passwordHash ?? '')).toBe(true);
+  });
+
+  test('a failed login leaves the stored hash alone', async () => {
+    const weak = await hash(anna.password, { memoryCost: 8, timeCost: 1, algorithm: 2 });
+    await db.update(users).set({ passwordHash: weak });
+    const res = await send('POST', '/auth/login', { email: anna.email, password: 'wrong password' });
+    expect(res.status).toBe(401);
+    const [row] = await db.select().from(users);
+    expect(row?.passwordHash).toBe(weak);
   });
 
   test('the cookie identifies the user, and the response never contains the password', async () => {
