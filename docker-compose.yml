@@ -15,5 +15,57 @@ services:
       timeout: 5s
       retries: 12
 
+  backend:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${COMPOSE_DATABASE_URL:-postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}}
+      CORS_ORIGIN: http://localhost:${FRONTEND_PORT:-5173}
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "bun", "-e", "const response = await fetch('http://127.0.0.1:8000/health'); if (!response.ok) process.exit(1)"]
+      interval: 5s
+      timeout: 5s
+      start_period: 20s
+      retries: 12
+    develop:
+      watch:
+        - action: sync
+          path: ./backend
+          target: /app
+          ignore: [package.json, bun.lock]
+        - action: rebuild
+          path: ./backend/package.json
+        - action: rebuild
+          path: ./backend/bun.lock
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      API_PROXY_TARGET: http://backend:8000
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-5173}:5173"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5173/').then(response => { if (!response.ok) process.exit(1) })"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    develop:
+      watch:
+        - action: sync
+          path: ./frontend
+          target: /app
+          ignore: [package.json, package-lock.json]
+        - action: rebuild
+          path: ./frontend/package.json
+        - action: rebuild
+          path: ./frontend/package-lock.json
+
 volumes:
   postgres_data:
