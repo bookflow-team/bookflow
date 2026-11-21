@@ -1,18 +1,23 @@
 import { cors } from '@elysiajs/cors';
 import { openapi } from '@elysiajs/openapi';
+import { sql } from 'drizzle-orm';
 import { Elysia } from 'elysia';
 import { z } from 'zod';
+import type { Db } from './db/client';
 import { errorHandler } from './http/error-handler';
 import { documentation, errorResponse, healthResponse } from './http/openapi';
 
-export function createApp(deps: { corsOrigin: string }) {
-  const health = () => ({ data: { status: 'ok' as const } });
+export function createApp(deps: { db: Db; corsOrigin: string }) {
+  const health = async () => {
+    await deps.db.execute(sql`select 1`);
+    return { data: { status: 'ok' as const } };
+  };
 
   const healthDocs = {
     detail: {
       tags: ['System'],
       summary: 'Health check',
-      description: 'Returns ok while the server is running.',
+      description: 'Runs `select 1` on the database, so it fails when the database cannot be reached.',
     },
     response: { 200: healthResponse, 500: errorResponse },
   };
