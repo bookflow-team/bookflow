@@ -75,6 +75,26 @@ The session cookie (`bookflow_session`) holds a random 256-bit token. Only its S
 copy of the database cannot be used to log in. The cookie is `HttpOnly` and `SameSite=Lax`, it lasts `SESSION_TTL_DAYS`
 (14 by default) and gets `Secure` when `COOKIE_SECURE=true` (set that behind HTTPS).
 
+### Limits on attempts
+
+Hashing is slow on purpose, so guessing passwords and flooding the sign-up are limited:
+
+| What | Limit | Counted per |
+| --- | --- | --- |
+| wrong passwords for one e-mail | 5 in 15 minutes | address and e-mail |
+| wrong passwords from one address | 30 in 15 minutes | address |
+| registrations | 20 per hour | address |
+
+Over the limit the API answers `429` with `{ "error": { "code": "TOO_MANY_ATTEMPTS", "details": { "retryAfterSeconds": n } } }`
+and a `Retry-After` header, without doing any hashing. A correct login clears the count for that e-mail and does not use up the
+address budget, a request refused as invalid (422) is not counted, and an unknown e-mail is counted exactly like a known one.
+The key contains the address, so a stranger cannot lock the real owner of an e-mail out from somewhere else.
+
+The address is the one of the connection. Behind a reverse proxy every visitor would look the same, so set `TRUST_PROXY=true`
+and the last entry of `X-Forwarded-For` (the one the proxy added) is used instead. Leave it `false` when nothing sits in
+front of the API, because the header can be forged by the client. The counters are kept in the memory of the process: they
+reset when the server restarts, and with several server instances each one counts for itself.
+
 ## Layout
 
 ```
