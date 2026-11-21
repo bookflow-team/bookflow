@@ -1,9 +1,9 @@
-import { eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { Elysia } from 'elysia';
 import { z } from 'zod';
 import type { Db } from '../db/client';
 import { isUniqueViolation } from '../db/errors';
-import { businesses, type Business } from '../db/schema';
+import { adminActions, businesses, type Business } from '../db/schema';
 import { AppError } from '../errors';
 import { requireRole } from '../http/guards';
 import { errorResponse } from '../http/openapi';
@@ -43,6 +43,7 @@ const businessEnvelope = z
       timezone: z.string(),
       approvalStatus: z.enum(['PENDING', 'APPROVED', 'REJECTED']),
       createdAt: z.string(),
+      rejectionReason: z.string().nullable().optional(),
     }),
   })
   .meta({
@@ -116,7 +117,24 @@ export function ownerBusinessRoutes(deps: { db: Db }) {
         const owner = requireRole(user, 'BUSINESS_OWNER');
         const [row] = await db.select().from(businesses).where(eq(businesses.ownerId, owner.id));
         if (!row) throw new AppError('NOT_FOUND', 'You have not registered a business yet');
-        return { data: toBusiness(row) };
+
+        let rejectionReason: string | null = null;
+        if (row.approvalStatus === 'REJECTED') {
+          const [action] = await db
+            .select({ reason: adminActions.reason })
+            .from(adminActions)
+            .where(
+              and(
+                eq(adminActions.targetType, 'BUSINESS'),
+                eq(adminActions.targetId, row.id),
+                eq(adminActions.actionType, 'REJECT_BUSINESS'),
+              ),
+            )
+            .orderBy(desc(adminActions.createdAt))
+            .limit(1);
+          rejectionReason = action?.reason ?? null;
+        }
+        return { data: { ...toBusiness(row), rejectionReason } };
       },
       {
         detail: { tags: ['Business'], summary: 'My business', description: 'Returns the business of the logged-in owner.' },
