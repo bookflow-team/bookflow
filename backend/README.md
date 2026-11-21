@@ -55,6 +55,26 @@ bun run db:migrate
 
 Commit the generated SQL. Never edit an SQL file that is already merged.
 
+## Accounts and sessions
+
+| Route | Who | What it does |
+| --- | --- | --- |
+| `POST /api/v1/auth/register` | anyone | creates a `CUSTOMER` or `BUSINESS_OWNER` account (`ADMIN` is refused) |
+| `POST /api/v1/auth/login` | anyone | checks the e-mail and password and sets the session cookie |
+| `POST /api/v1/auth/logout` | logged in | deletes the session and clears the cookie |
+| `GET /api/v1/auth/me` | logged in | returns the current user |
+
+Passwords are hashed with Argon2id (19 MiB of memory, 2 passes, 1 lane). Every password gets its own random 16 byte
+salt, and the salt and the settings are stored in the same string as the hash (`$argon2id$v=19$m=19456,t=2,p=1$<salt>$<hash>`),
+so two users with the same password have different values and nothing else has to be stored. The password is normalised
+(Unicode NFKC) before hashing. If the settings in `src/auth/password.ts` are changed later, a user's old hash is replaced
+by one with the new settings the next time they log in. A login for an e-mail that does not exist still does a full
+hash check, and a wrong password and an unknown e-mail give the same answer.
+
+The session cookie (`bookflow_session`) holds a random 256-bit token. Only its SHA-256 is stored in the `sessions` table, so a
+copy of the database cannot be used to log in. The cookie is `HttpOnly` and `SameSite=Lax`, it lasts `SESSION_TTL_DAYS`
+(14 by default) and gets `Secure` when `COOKIE_SECURE=true` (set that behind HTTPS).
+
 ## Layout
 
 ```
@@ -62,6 +82,7 @@ src/index.ts          start-up (config -> database -> server)
 src/config.ts         environment variables, validated once; a bad value stops the server at start
 src/app.ts            the Elysia app (CORS, OpenAPI, error handling, routes)
 src/errors.ts         AppError and the error codes with their HTTP status
+src/auth/             passwords (Argon2id), sessions, the /auth routes
 src/http/             HTTP plumbing shared by all routes
 src/db/               schema (Drizzle tables), client, migration runner
 drizzle/              generated SQL migrations (committed)
