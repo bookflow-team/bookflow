@@ -15,12 +15,17 @@ bun run dev                 # http://localhost:8000/health   and   /api/v1/opena
 
 ## Check it
 
+The tests use a real PostgreSQL database that is separate from your development one. Create it once, point `.env.test` at it, migrate it, then run the tests:
+
 ```bash
-cp .env.test.example .env.test   # a SEPARATE database whose name contains "test"
-bun run db:migrate               # with DATABASE_URL pointing at that database
-bun run test                     # Jest, real database, test files run one after another
+docker compose exec db createdb -U bookflow bookflow_test   # once; without Docker: createdb bookflow_test
+cp .env.test.example .env.test
+bun run db:migrate:test      # applies the migrations to the database named in .env.test
+bun run test                 # Jest, test files run one after another
 bun run typecheck
 ```
+
+`bun run db:migrate` reads `.env`, which is your development database. `bun run db:migrate:test` reads `.env.test`, the same file the tests read, so the migrations and the tests always use the same database.
 
 The tests refuse to run against a database whose name does not contain `test`.
 
