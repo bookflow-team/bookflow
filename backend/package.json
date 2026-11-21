@@ -26,6 +26,6 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "bun src/db/migrate.ts",
-    "db:migrate:test": "bun --env-file=.env.test src/db/migrate.ts"
+    "db:migrate:test": "bun --preload ./test/load-env.cjs src/db/migrate.ts"
   }
 }
