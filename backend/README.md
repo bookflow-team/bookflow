@@ -25,7 +25,7 @@ bun run test                 # Jest, test files run one after another
 bun run typecheck
 ```
 
-`bun run db:migrate` reads `.env`, which is your development database. `bun run db:migrate:test` reads `.env.test`, the same file the tests read, so the migrations and the tests always use the same database.
+`bun run db:migrate` reads `.env`, which is your development database. `bun run db:migrate:test` and `bun run test` both read `.env.test`, and what is written there wins over any `DATABASE_URL` you exported in your shell, so the migrations and the tests always use the same `bookflow_test` database. If there is no `.env.test` (as in CI), the `DATABASE_URL` from the environment is used.
 
 The tests refuse to run against a database whose name does not contain `test`.
 
