@@ -3,6 +3,7 @@ import { openapi } from '@elysiajs/openapi';
 import { sql } from 'drizzle-orm';
 import { Elysia } from 'elysia';
 import { z } from 'zod';
+import { adminBusinessRoutes } from './admin/business-routes';
 import type { AuthLimits } from './auth/limits';
 import { authRoutes } from './auth/routes';
 import { ownerBusinessRoutes } from './business/routes';
@@ -38,6 +39,7 @@ export function createApp(deps: {
   const api = new Elysia({ prefix: '/api/v1' })
     .get('/health', health, healthDocs)
     .use(ownerBusinessRoutes({ db: deps.db }))
+    .use(adminBusinessRoutes({ db: deps.db }))
     .use(
       authRoutes({
         db: deps.db,
