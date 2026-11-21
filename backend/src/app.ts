@@ -5,6 +5,7 @@ import { Elysia } from 'elysia';
 import { z } from 'zod';
 import type { AuthLimits } from './auth/limits';
 import { authRoutes } from './auth/routes';
+import { ownerBusinessRoutes } from './business/routes';
 import type { Db } from './db/client';
 import { errorHandler } from './http/error-handler';
 import { originGuard } from './http/guards';
@@ -36,6 +37,7 @@ export function createApp(deps: {
 
   const api = new Elysia({ prefix: '/api/v1' })
     .get('/health', health, healthDocs)
+    .use(ownerBusinessRoutes({ db: deps.db }))
     .use(
       authRoutes({
         db: deps.db,
