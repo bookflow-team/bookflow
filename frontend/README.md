@@ -81,10 +81,10 @@ BookFlow uses React Router for client-side navigation.
 | Path | Page | Description |
 |---|---|---|
 | `/` | HomePage | Public homepage |
-| `/catalog` | CatalogPage | Service catalog placeholder |
-| `/business/:id` | BusinessDetailsPage | Business details placeholder |
-| `/login` | LoginPage | Login placeholder |
-| `/register` | RegisterPage | Registration placeholder |
+| `/catalog` | CatalogPage | Mock business catalog with search and category filters |
+| `/business/:id` | BusinessDetailsPage | Mock business profile and services |
+| `/login` | LoginPage | Login form with client-side validation |
+| `/register` | RegisterPage | Registration form with client-side validation |
 | `*` | NotFoundPage | Fallback for unknown routes |
 
 ### Page Organization
@@ -119,6 +119,6 @@ Shared components are located in `src/components/`.
 Nikita and Ian should follow these conventions when
 implementing new frontend features.
 
-Current pages are placeholders. Authentication, booking,
-and business functionality will be implemented in
-their corresponding Issues.
+Public pages read local fixtures from `src/services/businessService.ts`.
+For a demo, open `/catalog` or `/business/the-barber-room`.
+The catalog API, backend authentication and booking are tracked in separate issues.
