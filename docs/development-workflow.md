@@ -255,6 +255,21 @@ Approximately 700 changed lines per code delivery is a guideline. Documentation,
 
 Frontend Pull Requests should include the relevant page functionality and API integration whenever the corresponding backend endpoint is available.
 
+### Pull request checks
+
+The `PR checks` job in the `CI` workflow runs for pull requests targeting `main`.
+Review its result in the pull request before merging. The job checks the proposed
+diff for whitespace errors and runs without repository secrets.
+
+- When `frontend/package.json` is present, CI runs `npm ci`, `npm run typecheck`,
+  and `npm run build` with Node.js 24.
+- When `backend/package.json` is present, CI installs dependencies with Bun's
+  frozen lockfile and runs `bun run test` if a `test` script is defined. Add that
+  script when backend tests become available.
+- CI logs a notice for each missing app or backend test script. A passing job
+  only verifies the steps that ran. A failing install, build, type check, or test
+  fails the job.
+
 ## 6. GitHub Projects Workflow
 
 The project board uses the following statuses:
