@@ -27,7 +27,7 @@ bun run typecheck
 
 `bun run db:migrate` reads `.env`, which is your development database. `bun run db:migrate:test` and `bun run test` both read `.env.test`, and what is written there wins over any `DATABASE_URL` you exported in your shell, so the migrations and the tests always use the same `bookflow_test` database. If there is no `.env.test` (as in CI), the `DATABASE_URL` from the environment is used. `bun run db:migrate:test` also refuses, before it connects, any database whose name does not contain `test`, so it can never migrate your development database by accident.
 
-The tests refuse to run against a database whose name does not contain `test`.
+The tests refuse to run against a database whose name does not contain `test`. From this change on they also delete every row from every table before each test, so `.env.test` must only ever point at a throwaway database.
 
 ## API documentation (OpenAPI)
 
