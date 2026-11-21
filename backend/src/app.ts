@@ -7,6 +7,7 @@ import type { AuthLimits } from './auth/limits';
 import { authRoutes } from './auth/routes';
 import type { Db } from './db/client';
 import { errorHandler } from './http/error-handler';
+import { originGuard } from './http/guards';
 import { documentation, errorResponse, healthResponse } from './http/openapi';
 import { securityHeaders } from './http/security-headers';
 
@@ -58,6 +59,7 @@ export function createApp(deps: {
         }),
       )
       .use(errorHandler)
+      .use(originGuard(deps.corsOrigin))
       .get('/health', health, healthDocs)
       .use(api)
   );
