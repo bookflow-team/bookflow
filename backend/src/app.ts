@@ -17,7 +17,7 @@ export function createApp(deps: { db: Db; corsOrigin: string }) {
     detail: {
       tags: ['System'],
       summary: 'Health check',
-      description: 'Returns ok while the server is running.',
+      description: 'Runs `select 1` on the database, so it fails when the database cannot be reached.',
     },
     response: { 200: healthResponse, 500: errorResponse },
   };
