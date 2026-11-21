@@ -153,7 +153,8 @@ describe('config', () => {
   const ok = { DATABASE_URL: 'postgres://u@localhost/db', CORS_ORIGIN: 'http://localhost:5173' };
 
   test('applies defaults', () => {
-    expect(loadConfig(ok)).toMatchObject({ BACKEND_PORT: 8000, BACKEND_HOST: '0.0.0.0', SESSION_TTL_DAYS: 14, COOKIE_SECURE: false });
+    expect(loadConfig(ok)).toMatchObject({ BACKEND_PORT: 8000, BACKEND_HOST: '0.0.0.0', SESSION_TTL_DAYS: 14, COOKIE_SECURE: false, TRUST_PROXY: false });
+    expect(loadConfig({ ...ok, TRUST_PROXY: 'true' }).TRUST_PROXY).toBe(true);
   });
 
   test('fails fast on bad values', () => {
@@ -161,5 +162,6 @@ describe('config', () => {
     expect(() => loadConfig({ ...ok, CORS_ORIGIN: 'http://localhost:5173/' })).toThrow(/CORS_ORIGIN/);
     expect(() => loadConfig({ ...ok, CORS_ORIGIN: 'javascript:alert(1)' })).toThrow(/CORS_ORIGIN/);
     expect(() => loadConfig({ ...ok, BACKEND_PORT: '99999' })).toThrow(/BACKEND_PORT/);
+    expect(() => loadConfig({ ...ok, TRUST_PROXY: 'yes' })).toThrow(/TRUST_PROXY/);
   });
 });
