@@ -8,6 +8,7 @@ import { authRoutes } from './auth/routes';
 import type { Db } from './db/client';
 import { errorHandler } from './http/error-handler';
 import { documentation, errorResponse, healthResponse } from './http/openapi';
+import { securityHeaders } from './http/security-headers';
 
 export function createApp(deps: {
   db: Db;
@@ -46,6 +47,7 @@ export function createApp(deps: {
 
   return (
     new Elysia()
+      .use(securityHeaders())
       .use(cors({ origin: deps.corsOrigin, credentials: true }))
       .use(
         openapi({
