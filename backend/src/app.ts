@@ -47,7 +47,7 @@ export function createApp(deps: {
 
   return (
     new Elysia()
-      .use(securityHeaders())
+      .use(securityHeaders({ hsts: deps.cookieSecure ?? false }))
       .use(cors({ origin: deps.corsOrigin, credentials: true }))
       .use(
         openapi({
