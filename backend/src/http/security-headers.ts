@@ -23,6 +23,9 @@ export function securityHeaders(options: { hsts?: boolean } = {}) {
     const path = new URL(request.url).pathname;
     Object.assign(set.headers, BASE_HEADERS);
     if (options.hsts) set.headers['strict-transport-security'] = HSTS;
-    if (!isDocs(path)) set.headers['content-security-policy'] = API_CSP;
+    if (!isDocs(path)) {
+      set.headers['content-security-policy'] = API_CSP;
+      set.headers['cache-control'] = 'no-store';
+    }
   });
 }
