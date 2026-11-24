@@ -24,7 +24,9 @@ const adminBusiness = z.object({
 const listQuery = pagingQuery.extend({ approvalStatus: z.enum(['PENDING', 'APPROVED', 'REJECTED']).optional() });
 const idParams = z.object({ id: z.uuid() });
 const approveBody = z.object({ reason: z.string().trim().max(500).optional() }).optional();
-const rejectBody = z.object({ reason: z.string().trim().min(1).max(500) });
+const rejectBody = z
+  .object({ reason: z.string().trim().min(1).max(500) })
+  .meta({ id: 'RejectBusinessRequest', example: { reason: 'The description is incomplete, please add what you offer' } });
 
 async function decideBusiness(
   db: Db,

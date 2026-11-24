@@ -15,13 +15,18 @@ const description = z.string().trim().max(2000);
 const durationMinutes = z.number().int().min(1).max(1440);
 const capacity = z.number().int().min(1).max(1000);
 
-const createBody = z.object({
-  name,
-  description: description.optional(),
-  price,
-  durationMinutes,
-  capacity,
-});
+const createBody = z
+  .object({
+    name,
+    description: description.optional(),
+    price,
+    durationMinutes,
+    capacity,
+  })
+  .meta({
+    id: 'CreateServiceRequest',
+    example: { name: 'Haircut', description: 'Classic men’s haircut', price: '1500.00', durationMinutes: 60, capacity: 2 },
+  });
 
 const updateBody = z
   .object({
@@ -32,7 +37,8 @@ const updateBody = z
     capacity: capacity.optional(),
     isActive: z.boolean().optional(),
   })
-  .refine((body) => Object.keys(body).length > 0, 'Send at least one field to change');
+  .refine((body) => Object.keys(body).length > 0, 'Send at least one field to change')
+  .meta({ id: 'UpdateServiceRequest', example: { price: '1700.00', capacity: 3 } });
 
 const idParams = z.object({ id: z.uuid() });
 
