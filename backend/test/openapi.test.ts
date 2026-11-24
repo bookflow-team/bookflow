@@ -94,6 +94,31 @@ describe('OpenAPI document', () => {
   });
 });
 
+describe('the extra answers of the auth routes', () => {
+  test('429 and 403 are documented where they can happen', async () => {
+    const doc = await document();
+    for (const path of ['/api/v1/auth/register', '/api/v1/auth/login']) {
+      expect(operation(doc, 'post', path).responses['429']?.headers?.['Retry-After']).toBeDefined();
+    }
+    for (const path of ['/api/v1/auth/register', '/api/v1/auth/login', '/api/v1/auth/logout']) {
+      expect(operation(doc, 'post', path).responses['403']).toBeDefined();
+    }
+  });
+
+  test('a request from another website gets the documented 403', async () => {
+    const registerOp = operation(await document(), 'post', '/api/v1/auth/register');
+    const refused = await app.handle(
+      new Request('http://localhost/api/v1/auth/register', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', origin: 'http://evil.example' },
+        body: JSON.stringify(requestExample(registerOp)),
+      }),
+    );
+    expect(refused.status).toBe(403);
+    expect(await refused.json()).toEqual(responseExample(registerOp, '403'));
+  });
+});
+
 describe('the documented examples are true', () => {
   test('registering and logging in with the documented request examples works, and the answers have the documented shape', async () => {
     const doc = await document();
