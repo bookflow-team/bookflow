@@ -135,3 +135,13 @@ test/                 tests
 - Every route is under `/api/v1`. The only exception is `GET /health`, which Docker and compose use as a health check.
 - Every failure is returned as `{ "error": { "code", "message", "details" } }`, whatever raised it.
 - Successful responses are `{ "data": ... }`.
+
+## First administrator
+
+Nobody can register as an administrator through the API. After `bun run db:migrate`, create the first one with:
+
+```bash
+ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='a long password' bun run seed:admin
+```
+
+The password needs at least 12 characters. Running it again changes nothing, and it never turns an existing customer or owner into an administrator.
