@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
-
-type RegistrationRole = 'CUSTOMER' | 'BUSINESS_OWNER'
+import { Link } from 'react-router-dom'
+import { register, type RegistrationRole } from '../../services/authService'
 
 type FormErrors = {
   email?: string
@@ -16,8 +16,14 @@ function RegisterPage() {
   const [errors, setErrors] = useState<FormErrors>({})
   const [message, setMessage] = useState('')
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  const [submitError, setSubmitError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (isSubmitting) return
+
+    setSubmitError('')
 
     const newErrors: FormErrors = {}
     setMessage('')
@@ -44,16 +50,17 @@ function RegisterPage() {
       return
     }
 
-    // Sprint 2: Send this payload to POST /auth/register.
-    // const registrationData = {
-    //   email: email.trim(),
-    //   password,
-    //   role
-    // }
-
-    setMessage(
-      'Registration is not available yet. Backend integration is planned for Sprint 2.'
-    )
+    setIsSubmitting(true)
+    try {
+      await register({ email: email.trim(), password, role })
+      setPassword('')
+      setConfirmPassword('')
+      setMessage('Your account has been created.')
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -155,14 +162,22 @@ function RegisterPage() {
 
         <button
           type="submit"
-          className="w-full rounded bg-blue-600 p-3 font-semibold text-white hover:bg-blue-700"
+          disabled={isSubmitting}
+          className="w-full rounded bg-blue-600 p-3 font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
         >
-          Register
+          {isSubmitting ? 'Creating account…' : 'Register'}
         </button>
+
+        {submitError && (
+          <p role="alert" className="text-center text-sm text-red-700 dark:text-red-400">
+            {submitError}
+          </p>
+        )}
 
         {message && (
           <p role="status" className="text-center text-sm text-blue-700 dark:text-blue-300">
-            {message}
+            {message}{' '}
+            <Link to="/login" className="underline">Sign in</Link>
           </p>
         )}
       </form>
