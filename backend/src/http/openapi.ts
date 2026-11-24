@@ -26,7 +26,7 @@ export const documentation = {
       '',
       '**Authentication** uses an HTTP-only session cookie called `bookflow_session`. Register with `POST /auth/register`, then call `POST /auth/login`: the answer sets the cookie and the browser sends it back by itself on every later request. JavaScript cannot read it. When the page is served from another origin than the API, send requests with `credentials: "include"`; behind the Vite dev proxy (`/api/v1`) a normal `fetch` is enough. `GET /auth/me` tells who is logged in and `POST /auth/logout` ends the session.',
       '',
-      'Every route needs the cookie unless its description says it is public (register, login and the health checks).',
+      'Every route needs the cookie unless its description says it is public (register, login and the health checks). Requests that change data (POST, PATCH, DELETE) are refused with 403 when their Origin header is not the address of the frontend.',
     ].join('\n'),
   },
   tags: [
