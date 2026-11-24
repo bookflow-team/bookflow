@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { login } from '../../services/authService'
 
 function LoginPage() {
   const [email, setEmail] = useState('')
@@ -9,8 +10,14 @@ function LoginPage() {
   }>({})
   const [message, setMessage] = useState('')
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  const [submitError, setSubmitError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (isSubmitting) return
+
+    setSubmitError('')
 
     const newErrors: {
       email?: string
@@ -30,10 +37,17 @@ function LoginPage() {
     setErrors(newErrors)
     setMessage('')
 
-    if (Object.keys(newErrors).length === 0) {
-      setMessage(
-        'Login is not available yet. Backend integration is coming soon.'
-      )
+    if (Object.keys(newErrors).length > 0) return
+
+    setIsSubmitting(true)
+    try {
+      await login({ email: email.trim(), password })
+      setPassword('')
+      setMessage('You are signed in.')
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Please try again.')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -92,10 +106,17 @@ function LoginPage() {
 
         <button
           type="submit"
-          className="w-full rounded bg-blue-600 p-3 font-semibold text-white hover:bg-blue-700"
+          disabled={isSubmitting}
+          className="w-full rounded bg-blue-600 p-3 font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
         >
-          Login
+          {isSubmitting ? 'Signing in…' : 'Login'}
         </button>
+
+        {submitError && (
+          <p role="alert" className="text-center text-sm text-red-700 dark:text-red-400">
+            {submitError}
+          </p>
+        )}
 
         {message && (
           <p role="status" className="text-center text-sm text-yellow-800 dark:text-yellow-300">
