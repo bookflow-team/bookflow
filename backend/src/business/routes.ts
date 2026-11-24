@@ -14,11 +14,16 @@ const timezone = z
   .string()
   .refine(isValidTimeZone, 'Expected an IANA time zone such as Europe/Moscow or Asia/Krasnoyarsk');
 
-const createBody = z.object({
-  name: z.string().trim().min(1).max(120),
-  description: z.string().trim().max(2000).optional(),
-  timezone,
-});
+const createBody = z
+  .object({
+    name: z.string().trim().min(1).max(120),
+    description: z.string().trim().max(2000).optional(),
+    timezone,
+  })
+  .meta({
+    id: 'CreateBusinessRequest',
+    example: { name: 'Boris Barbers', description: 'Classic haircuts and shaves', timezone: 'Asia/Krasnoyarsk' },
+  });
 
 const updateBody = z
   .object({
@@ -26,7 +31,8 @@ const updateBody = z
     description: z.string().trim().max(2000).nullable().optional(),
     timezone: timezone.optional(),
   })
-  .refine((body) => Object.keys(body).length > 0, 'Send at least one field to change');
+  .refine((body) => Object.keys(body).length > 0, 'Send at least one field to change')
+  .meta({ id: 'UpdateBusinessRequest', example: { description: 'Haircuts, shaves and beard care' } });
 
 const businessEnvelope = z
   .object({
@@ -39,7 +45,19 @@ const businessEnvelope = z
       createdAt: z.string(),
     }),
   })
-  .meta({ id: 'BusinessResponse' });
+  .meta({
+    id: 'BusinessResponse',
+    example: {
+      data: {
+        id: '9d2f6c1e-5a47-4c1b-8f3e-2b7a90c4d1e5',
+        name: 'Boris Barbers',
+        description: 'Classic haircuts and shaves',
+        timezone: 'Asia/Krasnoyarsk',
+        approvalStatus: 'PENDING',
+        createdAt: '2026-11-24T08:30:00.000Z',
+      },
+    },
+  });
 
 export function toBusiness(row: Business) {
   return {
