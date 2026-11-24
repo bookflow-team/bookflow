@@ -32,6 +32,7 @@ export const documentation = {
   tags: [
     { name: 'System', description: 'Health and diagnostics' },
     { name: 'Auth', description: 'Registration, login and the current session' },
+    { name: 'Business', description: 'The business owner’s own business' },
   ],
   components: {
     securitySchemes: {
