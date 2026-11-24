@@ -23,6 +23,8 @@ function validationDetails(error: unknown): unknown {
 export const errorHandler = new Elysia({ name: 'error-handler' }).onError({ as: 'global' }, ({ code, error, set }) => {
   if (error instanceof AppError) {
     set.status = error.status;
+    const wait = (error.details as { retryAfterSeconds?: unknown } | null)?.retryAfterSeconds;
+    if (error.code === 'TOO_MANY_ATTEMPTS' && typeof wait === 'number') set.headers['retry-after'] = String(wait);
     return failure(error.code, error.message, error.details);
   }
   switch (code) {
