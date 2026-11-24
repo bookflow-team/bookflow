@@ -95,6 +95,27 @@ and the last entry of `X-Forwarded-For` (the one the proxy added) is used instea
 front of the API, because the header can be forged by the client. The counters are kept in the memory of the process: they
 reset when the server restarts, and with several server instances each one counts for itself.
 
+## Security headers
+
+Every answer of the API (successes, errors, 404, the `204` of a logout and CORS preflights) carries these headers, set in
+`src/http/security-headers.ts`:
+
+| Header | Value | Why |
+| --- | --- | --- |
+| `X-Content-Type-Options` | `nosniff` | the browser must not guess another content type |
+| `X-Frame-Options` | `DENY` | the API cannot be shown inside a frame |
+| `Content-Security-Policy` | `default-src 'none'; frame-ancestors 'none'` | a JSON answer may not load or run anything |
+| `Referrer-Policy` | `no-referrer` | no address is leaked to other sites |
+| `Cross-Origin-Resource-Policy` | `same-site` | other sites cannot embed the answers |
+| `Cross-Origin-Opener-Policy` | `same-origin` | no window shared with other sites |
+| `X-Permitted-Cross-Domain-Policies` | `none` | no Flash or PDF cross-domain rules |
+| `Cache-Control` | `no-store` | answers with private data are never kept in a cache |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | only when `COOKIE_SECURE=true`, so plain http development is not affected |
+
+The documentation page (`/api/v1/openapi` and `/api/v1/openapi/json`) is the one exception for `Content-Security-Policy` and
+`Cache-Control`, because the Scalar page loads its script from a CDN. The `helmet` package is for Express, so these headers
+are set with a small Elysia hook instead.
+
 ## Layout
 
 ```
@@ -103,7 +124,7 @@ src/config.ts         environment variables, validated once; a bad value stops t
 src/app.ts            the Elysia app (CORS, OpenAPI, error handling, routes)
 src/errors.ts         AppError and the error codes with their HTTP status
 src/auth/             passwords (Argon2id), sessions, the /auth routes
-src/http/             HTTP plumbing shared by all routes
+src/http/             HTTP plumbing shared by all routes (error handler, security headers, client address)
 src/db/               schema (Drizzle tables), client, migration runner
 drizzle/              generated SQL migrations (committed)
 test/                 tests
