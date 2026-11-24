@@ -7,6 +7,11 @@ const envSchema = z.object({
   CORS_ORIGIN: z
     .url({ protocol: /^https?$/ })
     .refine((v) => !v.endsWith('/'), 'must not end with a slash'),
+  SESSION_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(14),
+  COOKIE_SECURE: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
 });
 
 export type Config = z.infer<typeof envSchema>;

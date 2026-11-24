@@ -153,7 +153,7 @@ describe('config', () => {
   const ok = { DATABASE_URL: 'postgres://u@localhost/db', CORS_ORIGIN: 'http://localhost:5173' };
 
   test('applies defaults', () => {
-    expect(loadConfig(ok)).toMatchObject({ BACKEND_PORT: 8000, BACKEND_HOST: '0.0.0.0' });
+    expect(loadConfig(ok)).toMatchObject({ BACKEND_PORT: 8000, BACKEND_HOST: '0.0.0.0', SESSION_TTL_DAYS: 14, COOKIE_SECURE: false });
   });
 
   test('fails fast on bad values', () => {

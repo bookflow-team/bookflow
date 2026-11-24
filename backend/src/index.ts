@@ -5,7 +5,12 @@ import { createDb } from './db/client';
 const config = loadConfig();
 const { db } = createDb(config.DATABASE_URL);
 
-createApp({ db, corsOrigin: config.CORS_ORIGIN }).listen({
+createApp({
+  db,
+  corsOrigin: config.CORS_ORIGIN,
+  sessionTtlDays: config.SESSION_TTL_DAYS,
+  cookieSecure: config.COOKIE_SECURE,
+}).listen({
   hostname: config.BACKEND_HOST,
   port: config.BACKEND_PORT,
 });
