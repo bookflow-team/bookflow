@@ -6,6 +6,7 @@ import { isUniqueViolation } from '../db/errors';
 import { users } from '../db/schema';
 import { AppError } from '../errors';
 import { clientIp } from '../http/client-ip';
+import { requireUser } from '../http/guards';
 import { errorDoc, jsonResponse, noContentDoc } from '../http/openapi';
 import { sessionUser } from '../http/session-user';
 import { takeFromAll } from './attempt-limiter';
@@ -84,6 +85,12 @@ const tooManyAttemptsDoc = errorDoc(
   },
 );
 
+const foreignOrigin = errorDoc(
+  'The request comes from another website: its Origin header is not the address of the frontend. Open the frontend on exactly the address set in CORS_ORIGIN (http://localhost:5173), not on 127.0.0.1.',
+  'FORBIDDEN',
+  'Request from an unexpected origin',
+);
+
 const notLoggedIn = errorDoc(
   'There is no valid session cookie: the visitor never logged in, logged out, or the session expired.',
   'UNAUTHENTICATED',
@@ -157,6 +164,7 @@ export function authRoutes(deps: {
               'An account with this e-mail already exists',
             ),
             422: validationFailed,
+            403: foreignOrigin,
             429: tooManyAttemptsDoc,
           },
         },
@@ -216,6 +224,7 @@ export function authRoutes(deps: {
             }),
             401: errorDoc('The e-mail or the password is wrong.', 'UNAUTHENTICATED', 'Wrong e-mail or password'),
             422: validationFailed,
+            403: foreignOrigin,
             429: tooManyAttemptsDoc,
           },
         },
@@ -224,8 +233,8 @@ export function authRoutes(deps: {
     .post(
       '/logout',
       async ({ user, sessionToken }) => {
-        if (!user || !sessionToken) throw new AppError('UNAUTHENTICATED', 'You are not logged in');
-        await deleteSession(db, sessionToken);
+        requireUser(user);
+        if (sessionToken) await deleteSession(db, sessionToken);
         return new Response(null, { status: 204, headers: { 'set-cookie': clearedSessionCookie(deps.cookieSecure) } });
       },
       {
@@ -236,6 +245,7 @@ export function authRoutes(deps: {
             'Ends the current session: its row is deleted, so the old cookie stops working at once, and the cookie is cleared. The answer has no body, so do not call `.json()` on it.',
           responses: {
             204: noContentDoc('Logged out. The answer has no body.', clearedCookieHeader),
+            403: foreignOrigin,
             401: notLoggedIn,
           },
         },
@@ -243,10 +253,7 @@ export function authRoutes(deps: {
     )
     .get(
       '/me',
-      ({ user }) => {
-        if (!user) throw new AppError('UNAUTHENTICATED', 'You are not logged in');
-        return { data: user };
-      },
+      ({ user }) => ({ data: requireUser(user) }),
       {
         detail: {
           tags: ['Auth'],
