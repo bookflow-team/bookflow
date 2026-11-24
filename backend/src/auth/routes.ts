@@ -5,7 +5,7 @@ import type { Db } from '../db/client';
 import { isUniqueViolation } from '../db/errors';
 import { users } from '../db/schema';
 import { AppError } from '../errors';
-import { errorResponse } from '../http/openapi';
+import { errorDoc, jsonResponse, noContentDoc } from '../http/openapi';
 import { sessionUser } from '../http/session-user';
 import { burnPasswordCheck, hashPassword, needsRehash, verifyPassword } from './password';
 import { clearedSessionCookie, createSession, deleteSession, sessionCookie, sessionUserColumns } from './session';
@@ -16,12 +16,25 @@ const registerBody = z.object({
   role: z.enum(['CUSTOMER', 'BUSINESS_OWNER']),
   name: z.string().trim().min(1).max(100).optional(),
   phone: z.string().trim().min(5).max(30).optional(),
+}).meta({
+  id: 'RegisterRequest',
+  example: { email: 'anna@example.com', password: 'correct horse battery', role: 'CUSTOMER' },
 });
 
-const loginBody = z.object({
-  email: z.string().min(1).max(254),
-  password: z.string().min(1).max(128),
-});
+const loginBody = z
+  .object({
+    email: z.string().min(1).max(254),
+    password: z.string().min(1).max(128),
+  })
+  .meta({ id: 'LoginRequest', example: { email: 'anna@example.com', password: 'correct horse battery' } });
+
+const exampleUser = {
+  id: '3f1c2a52-8b9e-4a54-9c1e-0f5a6d7e8b90',
+  email: 'anna@example.com',
+  name: 'anna',
+  phone: null,
+  role: 'CUSTOMER',
+};
 
 const userEnvelope = z
   .object({
@@ -33,7 +46,36 @@ const userEnvelope = z
       role: z.enum(['CUSTOMER', 'BUSINESS_OWNER', 'ADMIN']),
     }),
   })
-  .meta({ id: 'UserResponse' });
+  .meta({ id: 'UserResponse', example: { data: exampleUser } });
+
+const sessionCookieHeader = {
+  'Set-Cookie': {
+    description: 'The session cookie: HttpOnly, SameSite=Lax, valid for 14 days. The browser stores it and sends it back by itself.',
+    schema: { type: 'string' as const },
+    example: 'bookflow_session=Zk3vXq8mT1uJwY0bN5cLhR2sDfA7eGp9KiOoVxUtQ4E; Path=/; HttpOnly; SameSite=Lax; Max-Age=1209600',
+  },
+};
+
+const clearedCookieHeader = {
+  'Set-Cookie': {
+    description: 'Empties the cookie so the browser forgets the session.',
+    schema: { type: 'string' as const },
+    example: 'bookflow_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0',
+  },
+};
+
+const validationFailed = errorDoc(
+  'Some fields are invalid. `details.issues` lists them and `path[0]` is the name of the field.',
+  'VALIDATION_ERROR',
+  'Invalid request data',
+  { details: { on: 'body', issues: [{ path: ['password'], message: 'Too small: expected string to have >=8 characters' }] } },
+);
+
+const notLoggedIn = errorDoc(
+  'There is no valid session cookie: the visitor never logged in, logged out, or the session expired.',
+  'UNAUTHENTICATED',
+  'You are not logged in',
+);
 
 export function authRoutes(deps: { db: Db; sessionTtlMs: number; cookieSecure: boolean }) {
   const { db } = deps;
@@ -72,9 +114,22 @@ export function authRoutes(deps: { db: Db; sessionTtlMs: number; cookieSecure: b
           tags: ['Auth'],
           summary: 'Register',
           description:
-            'Creates a customer or business owner account. Administrators cannot register here. The name is optional and defaults to the part of the e-mail before the @.',
+            'Public. Creates a `CUSTOMER` or `BUSINESS_OWNER` account. Administrators cannot register here. The password needs 8 to 128 characters, `name` and `phone` are optional and the name defaults to the part of the e-mail before the @. E-mails are stored in lower case. The visitor is **not** logged in afterwards: call `POST /auth/login` next.',
+          security: [],
+          responses: {
+            201: jsonResponse({
+              description: 'The account was created. There is no cookie yet.',
+              schema: userEnvelope,
+              example: { data: exampleUser },
+            }),
+            409: errorDoc(
+              'An account with this e-mail exists already (letter case does not matter).',
+              'EMAIL_ALREADY_EXISTS',
+              'An account with this e-mail already exists',
+            ),
+            422: validationFailed,
+          },
         },
-        response: { 201: userEnvelope, 409: errorResponse, 422: errorResponse },
       },
     )
     .post(
@@ -109,9 +164,20 @@ export function authRoutes(deps: { db: Db; sessionTtlMs: number; cookieSecure: b
         detail: {
           tags: ['Auth'],
           summary: 'Log in',
-          description: 'Checks the e-mail and password and sets the session cookie.',
+          description:
+            'Public. Checks the e-mail (letter case does not matter) and the password and sets the `bookflow_session` cookie, see the `Set-Cookie` header of the 200 answer. A wrong password and an unknown e-mail give exactly the same 401 on purpose.',
+          security: [],
+          responses: {
+            200: jsonResponse({
+              description: 'Logged in. The answer carries the session cookie.',
+              schema: userEnvelope,
+              example: { data: exampleUser },
+              headers: sessionCookieHeader,
+            }),
+            401: errorDoc('The e-mail or the password is wrong.', 'UNAUTHENTICATED', 'Wrong e-mail or password'),
+            422: validationFailed,
+          },
         },
-        response: { 200: userEnvelope, 401: errorResponse, 422: errorResponse },
       },
     )
     .post(
@@ -122,7 +188,16 @@ export function authRoutes(deps: { db: Db; sessionTtlMs: number; cookieSecure: b
         return new Response(null, { status: 204, headers: { 'set-cookie': clearedSessionCookie(deps.cookieSecure) } });
       },
       {
-        detail: { tags: ['Auth'], summary: 'Log out', description: 'Ends the current session and clears the cookie.' },
+        detail: {
+          tags: ['Auth'],
+          summary: 'Log out',
+          description:
+            'Ends the current session: its row is deleted, so the old cookie stops working at once, and the cookie is cleared. The answer has no body, so do not call `.json()` on it.',
+          responses: {
+            204: noContentDoc('Logged out. The answer has no body.', clearedCookieHeader),
+            401: notLoggedIn,
+          },
+        },
       },
     )
     .get(
@@ -132,8 +207,16 @@ export function authRoutes(deps: { db: Db; sessionTtlMs: number; cookieSecure: b
         return { data: user };
       },
       {
-        detail: { tags: ['Auth'], summary: 'Current user', description: 'Returns the logged-in user.' },
-        response: { 200: userEnvelope, 401: errorResponse },
+        detail: {
+          tags: ['Auth'],
+          summary: 'Current user',
+          description:
+            'Returns the logged-in user. Call it when the app starts to find out whether the visitor is logged in: 401 means no.',
+          responses: {
+            200: jsonResponse({ description: 'The logged-in user.', schema: userEnvelope, example: { data: exampleUser } }),
+            401: notLoggedIn,
+          },
+        },
       },
     );
 }
